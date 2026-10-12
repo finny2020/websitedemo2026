@@ -7,7 +7,7 @@
 <meta name="description" content="Wet Ink Studio — identity, print and moving image. Marks that stay.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Instrument+Serif:ital@0;1&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -29,7 +29,7 @@
   <nav class="nav" aria-label="Main">
     <a href="#studio"><i>01/</i>Studio</a>
     <a href="#process"><i>02/</i>Process</a>
-    <a href="#work"><i>03/</i>Work</a>
+    <a href="#archive"><i>03/</i>Archive</a>
     <a href="#contact"><i>04/</i>Contact</a>
   </nav>
   <p class="drying" aria-live="off"><span class="drying__dot"></span>Ink drying <b id="dryTimer">00:00</b></p>
@@ -43,7 +43,7 @@
     <span class="reg reg--tl" aria-hidden="true"></span>
     <span class="reg reg--tr" aria-hidden="true"></span>
 
-    <p class="hero__eyebrow mono">Studio for identity, print &amp; moving image</p>
+    <p class="hero__eyebrow label">Studio for identity, print &amp; moving image</p>
 
     <h1 class="hero__title" aria-label="Wet Ink Studio">
       <span class="line"><span class="rise">Wet</span></span>
@@ -65,7 +65,7 @@
 
     <div class="hero__foot">
       <p class="hero__lede">An independent studio making identities, printed matter and moving image. <em>We make marks that stay</em>, then keep them a little wet so they can still move.</p>
-      <p class="hero__hint mono">Move to draw · Click to drop ink</p>
+      <p class="hero__hint label">Move to draw · Click to drop ink</p>
     </div>
     <span class="reg reg--bl" aria-hidden="true"></span>
     <span class="reg reg--br" aria-hidden="true"></span>
@@ -82,7 +82,7 @@
   <!-- DARK CHAPTER: sticky scroll story -->
   <section class="story" id="process" aria-label="How we work">
     <div class="story__stage">
-      <p class="story__side mono" aria-hidden="true">Wet Ink — process — five passes</p>
+      <p class="story__side label" aria-hidden="true">Wet Ink — process — five passes</p>
       <div class="story__object" id="stack" aria-hidden="true">
         <div class="drop3d"></div>
       </div>
@@ -103,25 +103,11 @@
     </div>
   </section>
 
-  <!-- WORK LIST -->
-  <section class="work" id="work">
-    <div class="section-head">
-      <h2 class="h2">Selected <em class="serif">work</em></h2>
-      <p class="mono muted">Placeholder projects · 2024–2026</p>
-    </div>
-
-    <ul class="worklist" id="worklist">
-      <!-- rows rendered by main.js from the PROJECTS list -->
-    </ul>
-
-    <div class="preview" id="preview" aria-hidden="true"><div class="preview__inner" id="previewInner"></div></div>
-  </section>
-
   <!-- ARCHIVE WHEEL -->
-  <section class="archive" aria-label="Archive">
+  <section class="archive" id="archive" aria-label="Archive">
     <div class="section-head section-head--light">
       <h2 class="h2">The <em class="serif">archive</em></h2>
-      <p class="mono">Drag to spin · <span id="archiveName">—</span></p>
+      <p class="label">Drag to spin · <span id="archiveName">—</span></p>
     </div>
     <div class="wheel" id="wheel" tabindex="0" aria-label="Archive carousel. Use left and right arrow keys to spin.">
       <div class="wheel__ring" id="ring"></div>
@@ -132,55 +118,45 @@
   <section class="services" aria-label="Services">
     <div class="section-head">
       <h2 class="h2">What we <em class="serif">ink</em></h2>
-      <p class="mono muted">Hover a cell to flood it</p>
+      <p class="label muted">Hover a cell to flood it</p>
     </div>
     <div class="cells">
       <article class="cell">
-        <p class="cell__q mono">“Who are you?”</p>
+        <p class="cell__q label">“Who are you?”</p>
         <h3>Identity</h3>
         <p>Names, marks, type systems and the rules that keep them consistent across every surface.</p>
-        <p class="cell__spec mono">Logo · Type · Guidelines</p>
+        <p class="cell__spec label">Logo · Type · Guidelines</p>
       </article>
       <article class="cell">
-        <p class="cell__q mono">“Hold it.”</p>
+        <p class="cell__q label">“Hold it.”</p>
         <h3>Print &amp; Riso</h3>
         <p>Books, posters and zines, proofed by hand and printed with spot inks that never come out the same twice.</p>
-        <p class="cell__spec mono">Riso · Offset · Binding</p>
+        <p class="cell__spec label">Riso · Offset · Binding</p>
       </article>
       <article class="cell">
-        <p class="cell__q mono">“Draw it.”</p>
+        <p class="cell__q label">“Draw it.”</p>
         <h3>Illustration</h3>
         <p>Characters, editorial pictures and lettering made with brush, nib and the occasional thumbprint.</p>
-        <p class="cell__spec mono">Editorial · Lettering · Mascots</p>
+        <p class="cell__spec label">Editorial · Lettering · Mascots</p>
       </article>
       <article class="cell">
-        <p class="cell__q mono">“Make it move.”</p>
+        <p class="cell__q label">“Make it move.”</p>
         <h3>Motion</h3>
         <p>Title sequences, logo animation and 3D studies that keep the ink wet on screen.</p>
-        <p class="cell__spec mono">Titles · 3D · Social</p>
+        <p class="cell__spec label">Titles · 3D · Social</p>
       </article>
     </div>
   </section>
 
   <!-- CONTACT -->
-  <section class="contact" id="contact">
-    <p class="mono muted">Got something that needs a mark?</p>
-    <h2 class="contact__big">Say <em class="serif">hello</em></h2>
-    <div class="contact__row">
-      <span class="contact__mail" id="mail">hello@wetink.studio</span>
-      <button class="btn" id="copyMail" type="button">Copy address</button>
-      <span class="mono muted" id="copyState" role="status"></span>
-    </div>
-    <ul class="contact__links mono">
-      <li><a href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram ↗</a></li>
-      <li><a href="https://www.behance.net/" target="_blank" rel="noopener">Behance ↗</a></li>
-      <li><a href="https://vimeo.com/" target="_blank" rel="noopener">Vimeo ↗</a></li>
-    </ul>
+  <section class="contact" id="contact" aria-label="Contact">
+    <span class="contact__line contact__mail">hello@wetink.studio</span>
+    <a class="contact__line contact__line--ig" href="https://www.instagram.com/wetink.studio/" target="_blank" rel="noopener">@wetink.studio</a>
   </section>
 </main>
 
 <footer class="foot">
-  <div class="foot__meta mono">
+  <div class="foot__meta label">
     <span>Wet Ink Studio © 2026</span>
     <span>Printed in Wet Red 485 U on 120 gsm uncoated</span>
     <a href="#top">Back to top ↑</a>

@@ -298,98 +298,8 @@
       <rect width="400" height="500" fill="url(#${id})" opacity=".5"/>
       ${shapes}
       <text x="22" y="476" font-family="Archivo, Arial, sans-serif" font-weight="900" font-size="210" letter-spacing="-12" fill="${C.ink}" style="mix-blend-mode:multiply">${glyph}</text>
-      <text x="22" y="34" font-family="JetBrains Mono, monospace" font-size="12" letter-spacing="1.2" fill="${C.ink}">${label.toUpperCase()}</text>
+      <text x="22" y="34" font-family="Archivo, Arial, sans-serif" font-stretch="80%" font-weight="600" font-size="13" letter-spacing="1" fill="${C.ink}">${label.toUpperCase()}</text>
     </svg>`;
-  }
-
-  /* -------------------------------------------------------------- work */
-  // Placeholder projects: swap in the studio's real work here.
-  const PROJECTS = [
-    { name: "Saltmarsh Press", tags: "Identity · Book series", year: 2026, seed: 11,
-      art: { bg: C.paper, a: C.blue, b: C.wet, glyph: "Sp", style: "splat" },
-      text: "A mark and cover system for a small press publishing coastal writing. Each spine carries one blot from the same drop, so the shelf reads as a single tide line.",
-      spec: "Riso: Medium Blue + Red · 12 titles" },
-    { name: "Oddly Coffee", tags: "Identity · Packaging", year: 2025, seed: 23,
-      art: { bg: C.yellow, a: C.ink, b: C.wet, glyph: "Oc", style: "rings" },
-      text: "Bags, cups and a roaster's stamp for a café that names its blends after weather. The ring stain is the logo.",
-      spec: "Offset 2 spot · Rubber stamp" },
-    { name: "Tinta Festival", tags: "Posters · Motion", year: 2025, seed: 37,
-      art: { bg: C.paper, a: C.pink, b: C.ink, glyph: "Tf", style: "stripes" },
-      text: "Posters and a title loop for a weekend of print workshops. Every poster was pulled live on the opening night, so no two match.",
-      spec: "Riso: Fluorescent Pink + Black · 400 prints" },
-    { name: "Hollow Hour", tags: "Film titles · 3D", year: 2024, seed: 41,
-      art: { bg: C.ink, a: C.wet, b: C.paper, glyph: "Hh", style: "drips" },
-      text: "Opening titles for a short documentary. Letterforms were painted in ink, scanned, then rebuilt in 3D so they could run and pool on screen.",
-      spec: "Ink on paper · Houdini · 1:42" },
-    { name: "Paper Weather", tags: "Zine · Risograph", year: 2024, seed: 53,
-      art: { bg: C.paper, a: C.green, b: C.pink, glyph: "Pw", style: "splat" },
-      text: "A quarterly zine of forecasts that never happened. Two drums, misregistered on purpose, so every copy has its own weather.",
-      spec: "Riso: Green + Fluorescent Pink · 24 pp" },
-    { name: "Moth & Meridian", tags: "Typeface · Packaging", year: 2026, seed: 67,
-      art: { bg: C.blue, a: C.yellow, b: C.ink, glyph: "Mm", style: "rings" },
-      text: "A display typeface drawn with a dip pen and the candle packaging it was made for. The counters stay open so the wax can show through.",
-      spec: "Custom type · Foil + blind deboss" }
-  ];
-  PROJECTS.forEach(p => { p.svg = cover(p.seed, { ...p.art, label: p.name }); });
-
-  const list = $("#worklist");
-  list.innerHTML = PROJECTS.map((p, i) => `
-    <li class="row">
-      <button class="row__btn" type="button" data-cursor="view" data-i="${i}" aria-expanded="false" aria-controls="detail-${i}">
-        <span class="row__name">${p.name}</span>
-        <span class="row__tags">${p.tags}</span>
-        <span class="row__year">${p.year}</span>
-        <span class="row__arrow" aria-hidden="true">→</span>
-      </button>
-      <div class="row__detail" id="detail-${i}"><div>
-        <div class="row__detailInner">
-          <div><p>${p.text}</p><p class="mono">${p.spec}</p></div>
-          <div class="row__cover">${p.svg.replace(/id="h(\d+)"/, 'id="d$1"').replace(/url\(#h(\d+)\)/, "url(#d$1)")}</div>
-        </div>
-      </div></div>
-    </li>`).join("");
-
-  list.addEventListener("click", e => {
-    const btn = e.target.closest(".row__btn"); if (!btn) return;
-    const row = btn.parentElement;
-    const open = !row.classList.contains("is-open");
-    $$(".row", list).forEach(r => { r.classList.remove("is-open"); $(".row__btn", r).setAttribute("aria-expanded", "false"); });
-    row.classList.toggle("is-open", open);
-    btn.setAttribute("aria-expanded", String(open));
-    if (open) preview.classList.remove("is-on");
-  });
-
-  // floating preview that trails the cursor with a little lag and tilt
-  const preview = $("#preview");
-  const previewInner = $("#previewInner");
-  const pv = { x: 0, y: 0, tx: 0, ty: 0, run: false, cur: -1 };
-  function pvLoop() {
-    const px = pv.x;
-    pv.x = lerp(pv.x, pv.tx, .14); pv.y = lerp(pv.y, pv.ty, .14);
-    const tilt = clamp((pv.x - px) * .35, -12, 12);
-    preview.style.transform = `translate3d(${pv.x}px, ${pv.y}px, 0) translate(-50%, -50%) rotate(${tilt}deg)`;
-    if (pv.run) requestAnimationFrame(pvLoop);
-  }
-  if (finePointer) {
-    list.addEventListener("pointermove", e => {
-      pv.tx = e.clientX + 40; pv.ty = e.clientY;
-      const btn = e.target.closest(".row__btn");
-      $$(".row__btn", list).forEach(b => b.classList.toggle("is-hot", b === btn));
-      list.classList.toggle("is-hovering", !!btn);
-      if (!btn || btn.parentElement.classList.contains("is-open")) { preview.classList.remove("is-on"); return; }
-      const i = +btn.dataset.i;
-      if (i !== pv.cur) { pv.cur = i; previewInner.innerHTML = PROJECTS[i].svg; }
-      if (!preview.classList.contains("is-on")) {
-        if (!pv.run) { pv.x = pv.tx; pv.y = pv.ty; }
-        preview.classList.add("is-on");
-      }
-      if (!pv.run) { pv.run = true; pvLoop(); }
-    });
-    list.addEventListener("pointerleave", () => {
-      preview.classList.remove("is-on"); list.classList.remove("is-hovering");
-      $$(".row__btn", list).forEach(b => b.classList.remove("is-hot"));
-      pv.cur = -1; setTimeout(() => { if (!preview.classList.contains("is-on")) pv.run = false; }, 400);
-    });
   }
 
   /* ------------------------------------------------------------ archive */
@@ -467,20 +377,6 @@
     };
     c.addEventListener("pointerenter", set);
     c.addEventListener("pointerleave", set);
-  });
-
-  /* --------------------------------------------------------- copy mail */
-  const copyBtn = $("#copyMail"), copyState = $("#copyState"), mail = $("#mail");
-  copyBtn.addEventListener("click", () => {
-    const done = msg => { copyState.textContent = msg; setTimeout(() => copyState.textContent = "", 2400); };
-    const fallback = () => {
-      const sel = getSelection(), range = document.createRange();
-      range.selectNodeContents(mail); sel.removeAllRanges(); sel.addRange(range);
-      done("Selected. Press Ctrl+C to copy");
-    };
-    try {
-      navigator.clipboard.writeText(mail.textContent.trim()).then(() => done("Copied"), fallback);
-    } catch (_) { fallback(); }
   });
 
   /* ------------------------------------------------------ footer drips */
