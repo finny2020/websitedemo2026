@@ -220,6 +220,7 @@ button { font: inherit; color: inherit; }
 .panel > * { pointer-events: none; }
 .panel > svg { display: block; width: 100%; height: 100%; }
 .panel.is-front { box-shadow: 0 0 0 1.5px var(--accent), 0 30px 60px -20px rgba(0,0,0,.8); }
+.panel > img { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; }
 .panel figcaption { position: absolute; left: 8px; bottom: 8px; padding: .3rem .5rem; border-radius: 999px; background: rgba(19,18,20,.72); color: var(--paper); font: 600 .62rem/1 var(--label); font-stretch: 80%; letter-spacing: .08em; text-transform: uppercase; }
 .wheel__controls { display: flex; justify-content: center; align-items: center; gap: .75rem; }
 .wheel__now {
@@ -270,6 +271,12 @@ button { font: inherit; color: inherit; }
 .detail__tags span { padding: .35rem .6rem; border-radius: 999px; border: 1px solid var(--line); }
 .detail__try { padding: .9rem 1rem; border-radius: .9rem; background: var(--ink); color: var(--paper); }
 .detail__try b { color: var(--accent); }
+.detail__gallery { display: grid; gap: 1rem; }
+.detail__gallery figure { margin: 0; display: grid; place-items: center; }
+.detail__gallery img { border-radius: .75rem; }
+.detail__gallery img { display: block; max-width: 100%; width: auto; height: auto; max-height: 80svh; }
+.detail__link { justify-self: start; display: inline-flex; align-items: center; gap: .4rem; padding: .85rem 1.2rem; border-radius: 999px; background: var(--accent); color: var(--ink); text-decoration: none; font: 600 .78rem/1 var(--label); font-stretch: 80%; letter-spacing: .07em; text-transform: uppercase; transition: transform var(--press); }
+.detail__link:active { transform: scale(.96); }
 .detail__cover { border-radius: .75rem; overflow: hidden; aspect-ratio: 4 / 5; max-width: 100%; }
 .detail__cover svg { display: block; width: 100%; height: 100%; }
 
@@ -285,6 +292,17 @@ button { font: inherit; color: inherit; }
 .site * { margin: 0; }
 .ws-nav { display: flex; align-items: center; gap: 3.2cqw; padding: 2.6cqw 4cqw; font-size: 1.9cqw; }
 .ws-nav b { margin-right: auto; }
+
+/* Escufin: title card for the live site */
+.ws-escu { background: #0F1A17; color: #EDEBE4; font-family: var(--body); }
+.ws-escu .ws-nav b { font: 700 2.6cqw/1 var(--display); letter-spacing: -.02em; }
+.ws-escu .ws-nav span { opacity: .55; text-transform: uppercase; letter-spacing: .1em; font-size: 1.5cqw; }
+.ws-escu__body { position: relative; padding: 10cqw 4cqw 8cqw; }
+.ws-escu__body p { font: 600 1.7cqw/1 var(--label); font-stretch: 80%; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
+.ws-escu__body h3 { margin-top: 2cqw; font: 900 13cqw/.9 var(--display); font-stretch: 112%; letter-spacing: -.05em; }
+.ws-escu__body h3 span { color: var(--accent); }
+.ws-escu__body i { position: absolute; right: 4cqw; top: 6cqw; width: 22cqw; aspect-ratio: 1; border-radius: 50%; border: 1px solid rgba(237,235,228,.25); background: conic-gradient(from 200deg, rgba(255,106,43,.0), rgba(255,106,43,.55) 25%, rgba(255,106,43,0) 26%); }
+.panel .ws-escu { height: 100%; }
 
 /* Kiln: ceramics shop */
 .ws-kiln { background: #F4EFE6; color: #2B2621; font-family: var(--body); }

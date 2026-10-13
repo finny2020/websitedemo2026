@@ -585,6 +585,13 @@
   }
 
   const SITES = {
+    escufin: {
+      url: "escufin.com",
+      html: () => `<div class="site ws-escu">
+        <nav class="ws-nav"><b>escufin</b><span>Finance</span></nav>
+        <div class="ws-escu__body"><p>Website by Wet Ink</p><h3>escufin<span>.com</span></h3><i aria-hidden="true"></i></div>
+      </div>`
+    },
     kiln: {
       url: "kiln.studio",
       html: () => `<div class="site ws-kiln">
@@ -772,8 +779,25 @@
   };
 
   /* ============================================================ archive data */
-  // Example pieces until the studio's real archive images arrive.
+  // Client work first, then concept studies (made for this site, labelled as such).
+  const IMG = "assets/archive/";
   const ARCHIVE = [
+    { kind: "Website", client: true, site: "escufin", title: "Escufin", tags: ["Finance", "Website", "Design"],
+      text: "A website for Escufin, in finance. The live site is at escufin.com.",
+      link: "https://www.escufin.com/" },
+    { kind: "Packaging", client: true, title: "Colour Pencil Boxes", tags: ["Packaging", "Illustration", "Print"],
+      bg: "#E9DCC6", fit: "contain",
+      images: [{ src: IMG + "crayons.webp", alt: "Four colour-pencil boxes on a wooden table, each sleeve with one flat illustration: a red tulip on yellow, a crescent moon over green hills, a bluebird on pink, and two orange quilt stars on green." }],
+      text: "A set of four pencil sleeves. Each carries one flat illustration (a tulip, a night sky, a bluebird and quilt stars) and its own patterned spine, so the boxes read as a family on a shelf." },
+    { kind: "Packaging", client: true, title: "Jus d'Art", tags: ["Packaging", "Label", "Identity"],
+      bg: "#C9A67F", fit: "cover",
+      images: [{ src: IMG + "jus-dart-carton.webp", alt: "Jus d'Art apple juice carton with a straw, cream label, dark green type and a red line-drawn apple." },
+               { src: IMG + "jus-dart-label.webp", alt: "Flat Jus d'Art label: Art Juice, 200 mL, 'jus de pomme pressé à froid', a red outline apple with coloured dots, a '100 % pommes, sans sucre ajouté' badge and the line 'restez curieux'." }],
+      text: "Carton and label for Art Juice's cold-pressed apple juice. Heavy green type, one red line-drawn apple, and the small print kept as calm as the name is loud: \u201crestez curieux\u201d." },
+    { kind: "Postcard", client: true, title: "Printing Studio Postcard", tags: ["Die-cut", "Illustration", "Print"],
+      bg: "#5367D1", fit: "contain",
+      images: [{ src: IMG + "postcard.webp", alt: "Die-cut postcard shaped like a printing-studio shopfront: green front with a striped awning, pink back reading 'print with us and be remembered'." }],
+      text: "A die-cut postcard cut to the outline of the shop. The front is the shopfront; the back says \u201cprint with us and be remembered\u201d and leaves room for a stamp." },
     { kind: "Website", site: "kiln", title: "Kiln Ceramics", year: 2026, tags: ["E-commerce", "Art direction", "Build"],
       text: "A shop for a two-person ceramics studio. Warm stock, a serif drawn for slow reading, and one gesture: pots lift when you hover and the bag answers when you add one.",
       tryIt: "Add a few pots to the bag." },
@@ -812,9 +836,11 @@
   const ring = $("#ring"), wheel = $("#wheel");
   const archiveName = $("#archiveName"), archiveIndex = $("#archiveIndex"), archiveKind = $("#archiveKind");
   $("#archiveTotal").textContent = ARCHIVE.length;
+  const kindLabel = it => it.client ? it.kind : `Concept ${it.kind.toLowerCase()}`;
   ring.innerHTML = ARCHIVE.map((it, i) => `<figure class="panel" data-i="${i}">${
-    it.site ? browser(SITES[it.site].url, SITES[it.site].html()) : cover(200 + i, { ...it.cover, label: it.title }, "w")
-  }<figcaption>${it.kind}</figcaption></figure>`).join("");
+    it.images ? `<img src="${it.images[0].src}" alt="" draggable="false" style="object-fit:${it.fit};background:${it.bg}">`
+    : it.site ? browser(SITES[it.site].url, SITES[it.site].html()) : cover(200 + i, { ...it.cover, label: it.title }, "w")
+  }<figcaption>${it.client ? it.kind : "Concept"}</figcaption></figure>`).join("");
   // thumbnails are pictures, not controls
   $$(".panel button, .panel input, .panel [contenteditable]", ring).forEach(n => { n.tabIndex = -1; n.removeAttribute("contenteditable"); });
   const panels = $$(".panel", ring);
@@ -837,7 +863,7 @@
     if (front !== wh.front) {
       wh.front = front;
       archiveName.textContent = ARCHIVE[front].title;
-      archiveKind.textContent = ARCHIVE[front].kind;
+      archiveKind.textContent = kindLabel(ARCHIVE[front]);
       archiveIndex.textContent = String(front + 1).padStart(2, "0");
       panels.forEach((p, i) => {
         const d = Math.min(Math.abs(i - front), N - Math.abs(i - front));
@@ -951,9 +977,13 @@
       <p>${it.text}</p>
       <div class="detail__tags label">${it.tags.map(t => `<span>${t}</span>`).join("")}</div>
       ${it.tryIt ? `<p class="detail__try"><b>Try it.</b> ${it.tryIt}</p>` : ""}
+      ${it.link ? `<a class="detail__link" href="${it.link}" target="_blank" rel="noopener">Visit ${it.link.replace(/^https?:\/\/(www\.)?|\/$/g, "")} ↗</a>` : ""}
+      ${it.client ? "" : `<p class="label muted">Concept study by Wet Ink, not client work.</p>`}
     </aside>`;
-    const main = it.site ? `<div class="detail__main">${browser(SITES[it.site].url, SITES[it.site].html())}</div>`
-                         : `<div class="detail__cover">${cover(200 + i, { ...it.cover, label: it.title }, "s")}</div>`;
+    const main = it.images ? `<div class="detail__gallery">${it.images.map(im =>
+                               `<figure><img src="${im.src}" alt="${im.alt.replace(/"/g, "&quot;")}"></figure>`).join("")}</div>`
+               : it.site ? `<div class="detail__main">${browser(SITES[it.site].url, SITES[it.site].html())}</div>`
+               : `<div class="detail__cover">${cover(200 + i, { ...it.cover, label: it.title }, "s")}</div>`;
     return `<div class="detail">${main}${aside}</div>`;
   }
 
@@ -962,7 +992,7 @@
     const it = ARCHIVE[i];
     opener = document.activeElement;
     closing = false;
-    $("#sheetMeta").textContent = `${it.kind} · ${it.year}`;
+    $("#sheetMeta").textContent = it.client ? `${it.kind} · Client work` : `${it.kind} · Concept study · ${it.year}`;
     $("#sheetTitle").textContent = it.title;
     sheetBody.innerHTML = detailHTML(it, i);
     sheetBody.scrollTop = 0;

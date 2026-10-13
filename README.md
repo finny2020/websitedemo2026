@@ -47,5 +47,6 @@ momentum projection for flicks, rubber-banding, and feedback on pointer-down.
 
 ## Placeholder content
 
-The archive pieces are examples until real work arrives (`ARCHIVE` and `SITES` in
-`js/main.js`). The email address is a placeholder; Instagram is @wetink.studio.
+The archive starts with client work (images in `assets/archive/`), followed by concept studies
+labelled as such. Add a piece by appending to `ARCHIVE` in `js/main.js` with `client: true` and an
+`images` list. The email address is a placeholder; Instagram is @wetink.studio.

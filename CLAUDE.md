@@ -20,8 +20,10 @@
 ## Content
 - Instagram: @wetink.studio — https://www.instagram.com/wetink.studio/
 - Email shown: hello@wetink.studio (placeholder until confirmed).
-- The "Selected work" section is removed for now; the user will supply past-work and archive images.
-  The archive shows example pieces (`ARCHIVE` in js/main.js): six interactive mock websites (`SITES`) and four
-  generated print covers. Each opens in a detail sheet.
+- The "Selected work" section is removed for now. The archive (`ARCHIVE` in js/main.js) lists real client work first
+  (`client: true`, images in assets/archive/), then concept studies, which must stay labelled "Concept".
+  Client work so far: Escufin website (https://www.escufin.com/; no screenshot yet, shown as a title card linking out),
+  colour pencil boxes, Jus d'Art / Art Juice carton + label, Printing Studio die-cut postcard.
+  Never invent years, clients or details for client work. The user will send more images.
 - Ink is a page-wide WebGL layer (two inks: black drops, orange trail). Keep it smooth: threshold at full device
   resolution, never upscale a thresholded low-res bitmap.
