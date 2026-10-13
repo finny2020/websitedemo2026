@@ -516,153 +516,65 @@
     storyBar.style.transform = `scaleX(${p})`;
   }
 
-  /* ============================================================ print covers (SVG) */
-  const C = { paper: "#E8E3D6", ink: "#131214", orange: "#FF6A2B", cream: "#F4EFE6", blue: "#0078BF", pink: "#FF48B0", grey: "#9C968A" };
-  function splatPath(rand, cx, cy, R) {
-    const n = 36, pts = [];
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      let r = R * (0.78 + rand() * 0.3);
-      if (rand() < .16) r *= 1.35 + rand() * .5;
-      pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
-    }
-    let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
-    for (let i = 0; i < n; i++) {
-      const p1 = pts[(i + 1) % n], p2 = pts[(i + 2) % n];
-      d += `Q${p1[0].toFixed(1)} ${p1[1].toFixed(1)} ${((p1[0] + p2[0]) / 2).toFixed(1)} ${((p1[1] + p2[1]) / 2).toFixed(1)}`;
-    }
-    return d + "Z";
-  }
-  function cover(seed, { bg, a, b, glyph, label, style }, idp) {
-    const rand = rng(seed), id = idp + seed;
-    let shapes = "";
-    if (style === "splat") {
-      shapes += `<path d="${splatPath(rand, 120 + rand() * 160, 160 + rand() * 180, 110 + rand() * 40)}" fill="${a}"/>`;
-      for (let i = 0; i < 9; i++) shapes += `<circle cx="${(rand() * 400).toFixed(0)}" cy="${(rand() * 500).toFixed(0)}" r="${(3 + rand() * 12).toFixed(1)}" fill="${a}"/>`;
-      shapes += `<path d="${splatPath(rand, 260 + rand() * 80, 330 + rand() * 80, 60 + rand() * 30)}" fill="${b}" style="mix-blend-mode:multiply"/>`;
-    } else if (style === "stripes") {
-      for (let i = 0; i < 9; i++) shapes += `<rect x="${-40 + i * 52}" y="-40" width="26" height="600" fill="${i % 3 ? a : b}" transform="rotate(${12 + rand() * 6} 200 250)"/>`;
-    } else if (style === "rings") {
-      for (let i = 9; i > 0; i--) shapes += `<circle cx="200" cy="230" r="${i * 24}" fill="${i % 2 ? a : bg}"/>`;
-      shapes += `<path d="${splatPath(rand, 200, 230, 46)}" fill="${b}"/>`;
-    } else if (style === "drips") {
-      shapes += `<rect x="0" y="0" width="400" height="150" fill="${a}"/>`;
-      for (let i = 0; i < 10; i++) {
-        const x = 12 + i * 40 + rand() * 10, h = 150 + rand() * 260, w = 12 + rand() * 16;
-        shapes += `<rect x="${x}" y="100" width="${w}" height="${h}" rx="${w / 2}" fill="${a}"/>`;
-      }
-      shapes += `<circle cx="${100 + rand() * 200}" cy="420" r="30" fill="${b}"/>`;
-    }
-    const textFill = bg === C.ink ? C.paper : C.ink;
-    return `<svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${label}">
-      <defs><pattern id="${id}" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(${(rand() * 45).toFixed(0)})"><circle cx="4.5" cy="4.5" r="1.6" fill="${b}" opacity=".55"/></pattern></defs>
-      <rect width="400" height="500" fill="${bg}"/>
-      <rect width="400" height="500" fill="url(#${id})" opacity=".45"/>
-      ${shapes}
-      <text x="22" y="476" font-family="Archivo, Arial, sans-serif" font-weight="900" font-size="210" letter-spacing="-12" fill="${textFill}" ${bg === C.ink ? "" : 'style="mix-blend-mode:multiply"'}>${glyph}</text>
-      <text x="22" y="34" font-family="Archivo, Arial, sans-serif" font-stretch="80%" font-weight="600" font-size="13" letter-spacing="1" fill="${textFill}">${label.toUpperCase()}</text>
-    </svg>`;
-  }
-
   /* ============================================================ mock websites
      Each is a small, working site. Sizes are in container units (cqw), so the same markup
      reads correctly as a thumbnail on the wheel and full size in the sheet. */
+  const IMG = "assets/archive/";
   const browser = (url, inner) => `<div class="browser"><div class="browser__bar"><i></i><i></i><i></i><span>${url}</span></div>${inner}</div>`;
 
-  /* small helper: a pill that slides between options on a critically damped spring */
-  function slidingPill(group, pill, buttons, onPick) {
-    const x = new Spring(0, { damping: 1, response: .32, precision: .1 });
-    const w = new Spring(0, { damping: 1, response: .32, precision: .1 });
-    const draw = dt => { x.step(dt); w.step(dt); pill.style.transform = `translateX(${x.value}px)`; pill.style.width = `${w.value}px`; return !(x.resting && w.resting); };
-    const pick = (b, instant) => {
-      buttons.forEach(o => { o.classList.toggle("is-on", o === b); o.setAttribute("aria-pressed", o === b); });
-      if (instant) { x.jump(b.offsetLeft); w.jump(b.offsetWidth); draw(0); } else { x.to(b.offsetLeft); w.to(b.offsetWidth); animate(draw); }
-      onPick && onPick(b);
-    };
-    buttons.forEach(b => b.addEventListener("pointerdown", () => pick(b)));   // moves on press
-    buttons.forEach(b => b.addEventListener("click", e => { if (e.detail === 0) pick(b); }));
-    requestAnimationFrame(() => pick(buttons.find(b => b.classList.contains("is-on")) || buttons[0], true));
-  }
-
   const SITES = {
-    escufin: {
-      url: "escufin.com",
-      html: () => `<div class="site ws-escu">
-        <nav class="ws-nav"><b>escufin</b><span>Finance</span></nav>
-        <div class="ws-escu__body"><p>Website by Wet Ink</p><h3>escufin<span>.com</span></h3><i aria-hidden="true"></i></div>
-      </div>`
-    },
-    kiln: {
-      url: "kiln.studio",
-      html: () => `<div class="site ws-kiln">
-        <nav class="ws-nav"><b>Kiln</b><span>Shop</span><span>Studio</span><span>Visit</span><span class="ws-cart">Bag <i data-cart>0</i></span></nav>
-        <h3>Slow objects for <em>quick</em> mornings</h3>
-        <div class="ws-pots">${[
-          ["Cup No. 1", "€48", "#B4673F", "30% 30% 45% 45% / 20% 20% 60% 60%"],
-          ["Ash bowl", "€64", "#8E8A80", "10% 10% 50% 50% / 10% 10% 90% 90%"],
-          ["Celadon vase", "€120", "#9DB3A0", "40% 40% 30% 30% / 60% 60% 30% 30%"],
-          ["Night jug", "€86", "#2B2621", "35% 45% 40% 40% / 30% 40% 55% 55%"],
-          ["Sand plate", "€38", "#D2B48C", "50% / 18%"],
-          ["Rust beaker", "€52", "#9C4A2A", "12% 12% 20% 20% / 8% 8% 25% 25%"]
-        ].map(([n, p, c, r]) => `<button class="pot" type="button" style="--c:${c};--r:${r}" aria-label="Add ${n} to bag"><span class="pot__shape"></span><em>${n}</em><small>${p}</small></button>`).join("")}</div></div>`,
+    /* Quiet Luxury / Loud Feet: grab a sock on the line and set it swinging.
+       Each sock is a pendulum on its own spring, pivoting at its peg. */
+    socks: {
+      frame: false,
+      html: () => `<div class="socks"><div class="socks__scene" style="background-image:url(${IMG}socks-scene.webp)">
+        <img class="sock" data-sock="L" src="${IMG}sock-left.webp" alt="" draggable="false" style="left:18.247%;top:2.791%;width:25.567%;transform-origin:49.60% 8.02%">
+        <img class="sock" data-sock="R" src="${IMG}sock-right.webp" alt="" draggable="false" style="left:50.103%;top:3.349%;width:22.577%;transform-origin:57.99% 7.80%">
+      </div></div>`,
       bind(el) {
-        const badge = $("[data-cart]", el);
-        const s = new Spring(1, { damping: .45, response: .3, precision: .001 });
-        let count = 0;
-        const draw = dt => { s.step(dt); badge.style.transform = `scale(${s.value})`; return !s.resting; };
-        $$(".pot", el).forEach(p => p.addEventListener("click", () => {
-          badge.textContent = ++count;
-          s.to(1, { velocity: 8 }); animate(draw);   // the badge takes a hit and settles
-        }));
-      }
-    },
-    north: {
-      url: "northlight.film",
-      html: () => {
-        const hues = [["#1d3b4a", "#e0814a"], ["#0f2430", "#3e6d7d"], ["#3b1f16", "#d69a5b"], ["#101820", "#7a8fa0"], ["#2a1b2e", "#c4624a"], ["#13262b", "#c9b37a"], ["#2b2a26", "#e2c38f"], ["#0b1b2b", "#ff6a2b"], ["#1e2a1c", "#a7b38a"], ["#27160f", "#f0a86b"]];
-        return `<div class="site ws-north">
-          <nav class="ws-nav"><b>Northlight</b><span>Films</span><span>Studio</span><span>Contact</span></nav>
-          <h3>Films about <em>the edge of light</em></h3>
-          <div class="ws-reel" data-reel><div class="ws-strip" data-strip>${hues.map(([a, b], i) =>
-            `<div class="ws-frame" data-sc="SC ${String(i + 1).padStart(2, "0")}" style="--g:linear-gradient(${120 + i * 17}deg, ${a} 10%, ${b} 120%)"></div>`).join("")}</div></div>
-          <div class="ws-scrub"><span data-timecode>00:00</span><div class="ws-track" data-track><span class="ws-fill" data-fill></span><i class="ws-head" data-head></i></div><span>01:42</span></div>
-        </div>`;
-      },
-      bind(el) {
-        const reel = $("[data-reel]", el), strip = $("[data-strip]", el), track = $("[data-track]", el);
-        const head = $("[data-head]", el), fill = $("[data-fill]", el), tc = $("[data-timecode]", el);
-        const x = new Spring(0, { damping: 1, response: .45, precision: .1 });
-        let min = 0, grabX = 0, dragging = false;
-        const measure = () => { min = Math.min(0, reel.clientWidth - strip.scrollWidth); };
-        const draw = dt => {
-          if (!dragging) x.step(dt);
-          strip.style.transform = `translate3d(${x.value}px,0,0)`;
-          const p = clamp(min ? x.value / min : 0, 0, 1);
-          head.style.left = fill.style.width = `${p * 100}%`;
-          const s = Math.round(p * 102);
-          tc.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-          return dragging || !x.resting;
-        };
-        // reel: drag 1:1, rubber-band past the ends, flick with projection
-        const band = v => v > 0 ? rubberband(v, reel.clientWidth) : v < min ? min + rubberband(v - min, reel.clientWidth) : v;
-        hDrag(reel, {
-          start() { measure(); grabX = x.value; x.jump(x.value); },
-          move(dx) { dragging = true; x.jump(band(grabX + dx)); animate(draw); },
-          end(v) { dragging = false; x.to(clamp(x.value + project(v), min, 0), { velocity: v, damping: 1, response: .5 }); animate(draw); }
+        const MAX = 28;   // degrees before the line starts to resist
+        const soft = a => Math.abs(a) <= MAX ? a : Math.sign(a) * (MAX + rubberband(Math.abs(a) - MAX, MAX));
+        $$(".sock", el).forEach(sock => {
+          const ang = new Spring(0, { damping: .8, response: .55, precision: .02 });   // it was thrown: a little swing is right
+          const tr = velocityTracker();
+          let drag = null;
+          const draw = dt => { if (!drag) ang.step(dt); sock.style.transform = `rotate(${ang.value}deg)`; return !!drag || !ang.resting; };
+          const pivot = () => {
+            const r = sock.parentElement.getBoundingClientRect(), [ox, oy] = getComputedStyle(sock).transformOrigin.split(" ").map(parseFloat);
+            return { x: r.left + sock.offsetLeft + ox, y: r.top + sock.offsetTop + oy };
+          };
+          const pointerAngle = (e, p) => -Math.atan2(e.clientX - p.x, e.clientY - p.y) * 180 / Math.PI;
+          sock.tabIndex = 0;
+          sock.setAttribute("role", "button");
+          sock.setAttribute("aria-label", sock.dataset.sock === "L" ? "Left sock, Quiet Luxury. Press Enter to swing it." : "Right sock, Loud Feet. Press Enter to swing it.");
+          sock.addEventListener("pointerdown", e => {
+            sock.setPointerCapture(e.pointerId); sock.classList.add("is-grabbed");
+            ang.jump(ang.value);                       // catch it mid-swing, exactly where it is
+            const p = pivot();
+            drag = { p, a0: ang.value, g0: pointerAngle(e, p) };
+            tr.reset(); tr.add(ang.value, 0);
+            animate(draw);
+          });
+          sock.addEventListener("pointermove", e => {
+            if (!drag) return;
+            ang.jump(soft(drag.a0 + pointerAngle(e, drag.p) - drag.g0));
+            tr.add(ang.value, 0);
+          });
+          const up = () => {
+            if (!drag) return;
+            drag = null; sock.classList.remove("is-grabbed");
+            ang.to(0, { velocity: tr.get().x });       // let go with the swing you gave it
+            animate(draw);
+          };
+          sock.addEventListener("pointerup", up);
+          sock.addEventListener("pointercancel", up);
+          sock.addEventListener("keydown", e => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            ang.to(0, { velocity: ang.velocity + (sock.dataset.sock === "L" ? -160 : 160) });
+            animate(draw);
+          });
         });
-        // scrubber: press anywhere on the track, then drag
-        const fromTrack = e => { const r = track.getBoundingClientRect(); return clamp((e.clientX - r.left) / r.width, 0, 1); };
-        track.style.touchAction = "none";
-        track.addEventListener("pointerdown", e => {
-          measure(); track.setPointerCapture(e.pointerId); dragging = true;
-          x.jump(fromTrack(e) * min); animate(draw);
-          const mv = ev => { x.jump(fromTrack(ev) * min); };
-          const up = () => { dragging = false; track.removeEventListener("pointermove", mv); animate(draw); };
-          track.addEventListener("pointermove", mv);
-          track.addEventListener("pointerup", up, { once: true });
-          track.addEventListener("pointercancel", up, { once: true });
-        });
-        measure(); draw(0);
       }
     },
     atlas: {
@@ -685,49 +597,6 @@
           spec.style.setProperty(`--${ax}`, ax === "wght" ? v : ax === "wdth" ? `${v}%` : `${v}cqw`);
         }));
         $$(".ws-glyphs span", el).forEach(g => g.addEventListener("click", () => { spec.textContent = g.textContent.repeat(6); }));
-      }
-    },
-    pause: {
-      url: "pause.radio",
-      html: () => {
-        const r = rng(7);
-        return `<div class="site ws-pause">
-          <nav class="ws-nav"><b>pause.</b><span>Shows</span><span>Schedule</span><span>Live</span></nav>
-          <div class="ws-player"><button class="ws-play" type="button" data-play aria-label="Play">▶</button>
-            <div><h3 data-ep>Night Shift 041</h3><p data-time>00:00 / 58:00 · Mira Ando</p></div></div>
-          <div class="ws-wave" data-wave>${Array.from({ length: 48 }, () => `<i style="--h:${(18 + r() * 82).toFixed(0)}%"></i>`).join("")}</div>
-          <ul class="ws-eps" data-eps>
-            <li class="is-on"><span>Night Shift 041</span><small>58:00</small></li>
-            <li><span>Paper Weather 012</span><small>41:30</small></li>
-            <li><span>Slow Hands 007</span><small>63:10</small></li>
-          </ul>
-        </div>`;
-      },
-      bind(el) {
-        const play = $("[data-play]", el), bars = $$("[data-wave] i", el), time = $("[data-time]", el), ep = $("[data-ep]", el);
-        const base = bars.map(b => parseFloat(b.style.getPropertyValue("--h")));
-        let playing = false, pos = 0, alive = true, t = 0;
-        const total = 58 * 60;
-        const draw = dt => {
-          if (!alive) return false;
-          if (playing) { pos = Math.min(1, pos + dt / 90); t += dt; }
-          const k = Math.floor(pos * bars.length);
-          bars.forEach((b, i) => {
-            b.classList.toggle("is-past", i < k);
-            b.style.setProperty("--h", `${playing && !reduced ? base[i] * (.7 + .3 * Math.abs(Math.sin(t * 6 + i * .7))) : base[i]}%`);
-          });
-          const s = Math.floor(pos * total);
-          time.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")} / 58:00 · Mira Ando`;
-          if (pos >= 1) playing = false;
-          play.textContent = playing ? "❚❚" : "▶"; play.setAttribute("aria-label", playing ? "Pause" : "Play");
-          return playing;
-        };
-        play.addEventListener("click", () => { playing = !playing; animate(draw); draw(0); });
-        $$("[data-eps] li", el).forEach(li => li.addEventListener("click", () => {
-          $$("[data-eps] li", el).forEach(o => o.classList.toggle("is-on", o === li));
-          ep.textContent = li.firstElementChild.textContent; pos = 0; playing = true; animate(draw);
-        }));
-        return () => { alive = false; };
       }
     },
     halo: {
@@ -753,38 +622,23 @@
         });
       }
     },
-    oddly: {
-      url: "oddly.coffee",
-      html: () => `<div class="site ws-oddly">
-        <nav class="ws-nav"><b>oddly</b><span>Menu</span><span>Beans</span><span>Find us</span></nav>
-        <h3>Coffee,<br>a bit odd.</h3>
-        <div class="ws-seg" data-seg><span class="ws-seg__pill" data-pill></span><button type="button" class="is-on">Hot</button><button type="button">Iced</button></div>
-        <ul class="ws-menu" data-menu>${[["Flat white", "€3.40"], ["Long black", "€3.00"], ["Cortado", "€3.20"], ["Cardamom chai", "€3.60"]].map(([n, p]) => `<li><span>${n}</span><small>${p}</small></li>`).join("")}</ul>
-        <span class="ws-cup" data-cup aria-hidden="true"></span>
-      </div>`,
-      bind(el) {
-        const menus = {
-          Hot: [["Flat white", "€3.40"], ["Long black", "€3.00"], ["Cortado", "€3.20"], ["Cardamom chai", "€3.60"]],
-          Iced: [["Iced oat latte", "€4.00"], ["Cold brew", "€3.80"], ["Espresso tonic", "€4.40"], ["Iced chai", "€4.00"]]
-        };
-        const menu = $("[data-menu]", el), cup = $("[data-cup]", el);
-        const fill = mode => {
-          menu.innerHTML = menus[mode].map(([n, p]) => `<li><span>${n}</span><small>${p}</small></li>`).join("");
-          cup.style.setProperty("--fill", mode === "Hot" ? "#6B3A20" : "#B98157");
-        };
-        fill("Hot");
-        slidingPill($("[data-seg]", el), $("[data-pill]", el), $$("[data-seg] button", el), b => fill(b.textContent));
-      }
-    }
   };
 
   /* ============================================================ archive data */
   // Client work first, then concept studies (made for this site, labelled as such).
-  const IMG = "assets/archive/";
   const ARCHIVE = [
-    { kind: "Website", client: true, site: "escufin", title: "Escufin", tags: ["Finance", "Website", "Design"],
-      text: "A website for Escufin, in finance. The live site is at escufin.com.",
+    { kind: "Website", client: true, title: "Escu & Co.", url: "escufin.com", tags: ["Finance", "Website", "EN / FR"],
+      images: [
+        { src: IMG + "escufin-1.webp", alt: "Escu & Co. homepage: a serif headline, 'The opportunities that reshape markets are rarely obvious.', over a dark navy background with a dotted horizon." },
+        { src: IMG + "escufin-2.webp", alt: "Track record section: a large '15+', 'Years connecting international businesses across industries and markets', and a line-drawn classical column." },
+        { src: IMG + "escufin-3.webp", alt: "What we do section on a paper-toned background: Identify, Structure, Build, each with a fine line icon and a short description." }
+      ],
+      text: "Website for Escu &amp; Co., a European consultancy and financial management firm. Dark navy and quiet: a serif headline over a dotted horizon, a line-drawn column for the track record, and a paper-toned section for what they do. In English and French.",
       link: "https://www.escufin.com/" },
+    { kind: "Product", client: true, site: "socks", title: "Quiet Luxury / Loud Feet", tags: ["Product", "Illustration", "Interactive"],
+      images: [{ src: IMG + "loud-feet-sock.webp", alt: "A cream Loud Feet sock on a wooden peg, with red lettering and a blue smiling pearl in an oyster." }],
+      text: "A pair of cream socks. The left one reads Quiet Luxury with a smiling champagne coupe; the right one reads Loud Feet with a smiling pearl in an oyster.",
+      tryIt: "Grab a sock on the line and set it swinging." },
     { kind: "Packaging", client: true, title: "Colour Pencil Boxes", tags: ["Packaging", "Illustration", "Print"],
       bg: "#E9DCC6", fit: "contain",
       images: [{ src: IMG + "crayons.webp", alt: "Four colour-pencil boxes on a wooden table, each sleeve with one flat illustration: a red tulip on yellow, a crescent moon over green hills, a bluebird on pink, and two orange quilt stars on green." }],
@@ -793,41 +647,17 @@
       bg: "#C9A67F", fit: "cover",
       images: [{ src: IMG + "jus-dart-carton.webp", alt: "Jus d'Art apple juice carton with a straw, cream label, dark green type and a red line-drawn apple." },
                { src: IMG + "jus-dart-label.webp", alt: "Flat Jus d'Art label: Art Juice, 200 mL, 'jus de pomme pressé à froid', a red outline apple with coloured dots, a '100 % pommes, sans sucre ajouté' badge and the line 'restez curieux'." }],
-      text: "Carton and label for Art Juice's cold-pressed apple juice. Heavy green type, one red line-drawn apple, and the small print kept as calm as the name is loud: \u201crestez curieux\u201d." },
+      text: "Carton and label for Art Juice's cold-pressed apple juice. Heavy green type, one red line-drawn apple, and the small print kept as calm as the name is loud: “restez curieux”." },
     { kind: "Postcard", client: true, title: "Printing Studio Postcard", tags: ["Die-cut", "Illustration", "Print"],
       bg: "#5367D1", fit: "contain",
       images: [{ src: IMG + "postcard.webp", alt: "Die-cut postcard shaped like a printing-studio shopfront: green front with a striped awning, pink back reading 'print with us and be remembered'." }],
-      text: "A die-cut postcard cut to the outline of the shop. The front is the shopfront; the back says \u201cprint with us and be remembered\u201d and leaves room for a stamp." },
-    { kind: "Website", site: "kiln", title: "Kiln Ceramics", year: 2026, tags: ["E-commerce", "Art direction", "Build"],
-      text: "A shop for a two-person ceramics studio. Warm stock, a serif drawn for slow reading, and one gesture: pots lift when you hover and the bag answers when you add one.",
-      tryIt: "Add a few pots to the bag." },
-    { kind: "Poster", title: "Blot Poster 01", year: 2025, tags: ["Risograph", "A2", "Edition of 80"],
-      cover: { bg: C.paper, a: C.ink, b: C.orange, glyph: "B1", style: "splat" },
-      text: "The first of a poster series made by dropping ink from a height onto wet stock, scanned and pulled in two Riso drums." },
-    { kind: "Website", site: "north", title: "Northlight Films", year: 2025, tags: ["Portfolio", "Motion", "Build"],
-      text: "A dark, quiet site for a documentary studio. The reel is the navigation: drag it, flick it or scrub the timeline, and it keeps your momentum.",
-      tryIt: "Flick the reel, or drag along the timeline." },
-    { kind: "Identity", title: "Oddly Stamp Set", year: 2025, tags: ["Identity", "Rubber stamp", "Packaging"],
-      cover: { bg: C.orange, a: C.ink, b: C.paper, glyph: "Os", style: "rings" },
-      text: "A ring stain became the mark. Three rubber stamps let the café brand cups, bags and receipts by hand." },
+      text: "A die-cut postcard cut to the outline of the shop. The front is the shopfront; the back says “print with us and be remembered” and leaves room for a stamp." },
     { kind: "Website", site: "atlas", title: "Atlas Type Foundry", year: 2026, tags: ["Type tester", "Variable fonts", "Build"],
       text: "A foundry site where the type tester is the homepage. Every axis is a slider, every word is editable.",
       tryIt: "Move the sliders, type your own words, or tap a glyph." },
-    { kind: "Zine", title: "Paper Weather 03", year: 2024, tags: ["Risograph", "24 pp", "Misregistered"],
-      cover: { bg: C.cream, a: C.blue, b: C.orange, glyph: "Pw", style: "stripes" },
-      text: "A quarterly of forecasts that never happened. Two drums, misregistered on purpose, so every copy has its own weather." },
-    { kind: "Website", site: "pause", title: "Pause Radio", year: 2025, tags: ["Audio", "Live", "Build"],
-      text: "An independent station that wanted listening to feel slow. Big play button, a waveform that fills as the show plays, nothing else in the way.",
-      tryIt: "Press play, then pick another show." },
-    { kind: "Titles", title: "Hollow Hour", year: 2024, tags: ["Film titles", "Ink on paper", "3D"],
-      cover: { bg: C.ink, a: C.orange, b: C.paper, glyph: "Hh", style: "drips" },
-      text: "Opening titles painted in ink, scanned, then rebuilt in 3D so the letters could run and pool on screen." },
     { kind: "Website", site: "halo", title: "Halo Clinic", year: 2026, tags: ["Healthcare", "Booking", "Accessibility"],
       text: "A calm booking flow for a small clinic: two choices and one button, written in plain words, readable at any text size.",
-      tryIt: "Pick a day and a time, then book." },
-    { kind: "Website", site: "oddly", title: "Oddly Coffee", year: 2025, tags: ["Hospitality", "Menu", "Build"],
-      text: "The café's menu site. A hot and iced switch slides on a spring and the whole menu changes with it.",
-      tryIt: "Switch between hot and iced." }
+      tryIt: "Pick a day and a time, then book." }
   ];
 
   /* ============================================================ archive wheel
@@ -837,9 +667,11 @@
   const archiveName = $("#archiveName"), archiveIndex = $("#archiveIndex"), archiveKind = $("#archiveKind");
   $("#archiveTotal").textContent = ARCHIVE.length;
   const kindLabel = it => it.client ? it.kind : `Concept ${it.kind.toLowerCase()}`;
+  const siteMarkup = it => SITES[it.site].frame === false ? SITES[it.site].html() : browser(SITES[it.site].url, SITES[it.site].html());
   ring.innerHTML = ARCHIVE.map((it, i) => `<figure class="panel" data-i="${i}">${
-    it.images ? `<img src="${it.images[0].src}" alt="" draggable="false" style="object-fit:${it.fit};background:${it.bg}">`
-    : it.site ? browser(SITES[it.site].url, SITES[it.site].html()) : cover(200 + i, { ...it.cover, label: it.title }, "w")
+    it.site ? siteMarkup(it)
+    : it.url ? browser(it.url, `<img class="shot" src="${it.images[0].src}" alt="" draggable="false">`)
+    : `<img src="${it.images[0].src}" alt="" draggable="false" style="object-fit:${it.fit};background:${it.bg}">`
   }<figcaption>${it.client ? it.kind : "Concept"}</figcaption></figure>`).join("");
   // thumbnails are pictures, not controls
   $$(".panel button, .panel input, .panel [contenteditable]", ring).forEach(n => { n.tabIndex = -1; n.removeAttribute("contenteditable"); });
@@ -980,10 +812,11 @@
       ${it.link ? `<a class="detail__link" href="${it.link}" target="_blank" rel="noopener">Visit ${it.link.replace(/^https?:\/\/(www\.)?|\/$/g, "")} ↗</a>` : ""}
       ${it.client ? "" : `<p class="label muted">Concept study by Wet Ink, not client work.</p>`}
     </aside>`;
-    const main = it.images ? `<div class="detail__gallery">${it.images.map(im =>
-                               `<figure><img src="${im.src}" alt="${im.alt.replace(/"/g, "&quot;")}"></figure>`).join("")}</div>`
-               : it.site ? `<div class="detail__main">${browser(SITES[it.site].url, SITES[it.site].html())}</div>`
-               : `<div class="detail__cover">${cover(200 + i, { ...it.cover, label: it.title }, "s")}</div>`;
+    const gallery = (it.images || []).map(im => {
+      const img = `<img src="${im.src}" alt="${im.alt.replace(/"/g, "&quot;")}">`;
+      return `<figure>${it.url ? browser(it.url, img) : img}</figure>`;
+    }).join("");
+    const main = `<div class="detail__main">${it.site ? siteMarkup(it) : ""}${gallery ? `<div class="detail__gallery${it.url ? " is-screens" : ""}">${gallery}</div>` : ""}</div>`;
     return `<div class="detail">${main}${aside}</div>`;
   }
 
@@ -996,7 +829,7 @@
     $("#sheetTitle").textContent = it.title;
     sheetBody.innerHTML = detailHTML(it, i);
     sheetBody.scrollTop = 0;
-    cleanup = it.site && SITES[it.site].bind ? SITES[it.site].bind($(".site", sheetBody)) : null;
+    cleanup = it.site && SITES[it.site].bind ? SITES[it.site].bind($(".detail__main", sheetBody)) : null;
     sheet.hidden = scrim.hidden = false;
     root.classList.add("is-locked");
     sheet.style.transform = "none";

@@ -38,8 +38,9 @@ momentum projection for flicks, rubber-banding, and feedback on pointer-down.
    from below going forward and from above going back.
 5. Archive: 1:1 drag, flick projection, snap to a piece, tap a side piece to bring it forward,
    arrow keys, buttons and trackpad side-swipes. Tap the front piece (or Open) and a sheet grows
-   out of it; drag the sheet's handle down to dismiss. Six pieces are working mock websites
-   (Kiln shop, Northlight reel, Atlas type tester, Pause radio, Halo booking, Oddly menu).
+   out of it; drag the sheet's handle down to dismiss. Client work comes first (Escu & Co.,
+   Quiet Luxury / Loud Feet socks you can set swinging, pencil boxes, Jus d'Art, a die-cut
+   postcard), followed by two concept studies (Atlas type tester, Halo booking).
 6. Services: ink floods in from where the pointer enters and drains out where it leaves.
 7. Contact: tap the address to copy it. Footer letters lean toward the pointer.
 

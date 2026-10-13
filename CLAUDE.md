@@ -22,8 +22,11 @@
 - Email shown: hello@wetink.studio (placeholder until confirmed).
 - The "Selected work" section is removed for now. The archive (`ARCHIVE` in js/main.js) lists real client work first
   (`client: true`, images in assets/archive/), then concept studies, which must stay labelled "Concept".
-  Client work so far: Escufin website (https://www.escufin.com/; no screenshot yet, shown as a title card linking out),
-  colour pencil boxes, Jus d'Art / Art Juice carton + label, Printing Studio die-cut postcard.
+  Client work: Escu & Co. website (escufin.com, three screenshots in browser frames), Quiet Luxury / Loud Feet socks
+  (interactive swinging socks rebuilt from the user's HTML + a static sock image), colour pencil boxes,
+  Jus d'Art / Art Juice carton + label, Printing Studio die-cut postcard.
+  Concepts left: Atlas Type Foundry, Halo Clinic. The user removed Kiln, Northlight, Oddly, Pause, Blot poster,
+  Oddly stamp set, Paper Weather and Hollow Hour; don't bring them back.
   Never invent years, clients or details for client work. The user will send more images.
 - Ink is a page-wide WebGL layer (two inks: black drops, orange trail). Keep it smooth: threshold at full device
   resolution, never upscale a thresholded low-res bitmap.
