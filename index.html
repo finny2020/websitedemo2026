@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Wet Ink Studio</title>
-<meta name="description" content="Wet Ink Studio — identity, print and moving image. Marks that stay.">
+<meta name="description" content="Wet Ink Studio — identity, print, websites and moving image. Marks that stay.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Instrument+Serif:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -34,16 +34,16 @@
 
   <!-- HERO -->
   <section class="hero" id="studio">
-    <canvas class="ink-canvas" id="inkCanvas" aria-hidden="true"></canvas>
     <span class="reg reg--tl" aria-hidden="true"></span>
     <span class="reg reg--tr" aria-hidden="true"></span>
 
-    <p class="hero__eyebrow label">Studio for identity, print &amp; moving image</p>
+    <p class="hero__eyebrow label">Studio for identity, print, websites &amp; moving image</p>
 
+    <!-- "ink" is set with a dotless ı: Blot sits where the dot would be -->
     <h1 class="hero__title" aria-label="Wet Ink Studio">
       <span class="line"><span class="rise">Wet</span></span>
       <span class="line line--ink">
-        <span class="rise">I<span class="tittle-host">ı<button class="mascot" id="mascot" type="button" aria-label="Blot, the studio mascot. Drag it around or tap it.">
+        <span class="rise"><span class="tittle-host">ı<button class="mascot" id="mascot" type="button" aria-label="Blot, the studio mascot. Drag it around or tap it.">
           <svg class="blot" viewBox="0 0 60 72" aria-hidden="true">
             <use href="#blot"/>
             <g class="eyes">
@@ -59,8 +59,8 @@
     </h1>
 
     <div class="hero__foot">
-      <p class="hero__lede">An independent studio making identities, printed matter and moving image. <em>We make marks that stay</em>, then keep them a little wet so they can still move.</p>
-      <p class="hero__hint label" id="heroHint">Draw with the pointer · Press to drop ink · Throw Blot</p>
+      <p class="hero__lede">An independent studio making identities, printed matter, websites and moving image. <em>We make marks that stay</em>, then keep them a little wet so they can still move.</p>
+      <p class="hero__hint label" id="heroHint">Move to leave a trail · Press to drop ink · Throw Blot</p>
     </div>
     <span class="reg reg--bl" aria-hidden="true"></span>
     <span class="reg reg--br" aria-hidden="true"></span>
@@ -69,8 +69,8 @@
   <!-- TICKER: drifts on its own, picks up the speed and direction of your scroll -->
   <div class="ticker" aria-hidden="true">
     <div class="ticker__track" id="ticker">
-      <span>“Work is wet”</span><b>✺</b><span>Identity</span><b>✺</b><span>Risograph</span><b>✺</b><span>Type</span><b>✺</b><span>Motion</span><b>✺</b><span>Books</span><b>✺</b><span>“Never quite dry”</span><b>✺</b>
-      <span>“Work is wet”</span><b>✺</b><span>Identity</span><b>✺</b><span>Risograph</span><b>✺</b><span>Type</span><b>✺</b><span>Motion</span><b>✺</b><span>Books</span><b>✺</b><span>“Never quite dry”</span><b>✺</b>
+      <span>“Work is wet”</span><b>✺</b><span>Identity</span><b>✺</b><span>Websites</span><b>✺</b><span>Risograph</span><b>✺</b><span>Type</span><b>✺</b><span>Motion</span><b>✺</b><span>“Never quite dry”</span><b>✺</b>
+      <span>“Work is wet”</span><b>✺</b><span>Identity</span><b>✺</b><span>Websites</span><b>✺</b><span>Risograph</span><b>✺</b><span>Type</span><b>✺</b><span>Motion</span><b>✺</b><span>“Never quite dry”</span><b>✺</b>
     </div>
   </div>
 
@@ -85,7 +85,7 @@
         <li><span>01</span>Listen</li>
         <li><span>02</span>Sketch</li>
         <li><span>03</span>Proof</li>
-        <li><span>04</span>Print</li>
+        <li><span>04</span>Build</li>
         <li><span>05</span>Release</li>
       </ol>
       <div class="story__lines">
@@ -102,14 +102,19 @@
   <section class="archive" id="archive" aria-label="Archive">
     <div class="section-head section-head--light">
       <h2 class="h2">The <em class="serif">archive</em></h2>
-      <p class="label">Drag or flick to spin</p>
+      <p class="label">Flick to spin · Tap the front piece to open it</p>
     </div>
-    <div class="wheel" id="wheel" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Archive. Use the left and right arrow keys to turn.">
+    <div class="wheel" id="wheel" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Archive. Left and right arrow keys turn it, Enter opens the front piece.">
       <div class="wheel__ring" id="ring"></div>
     </div>
     <div class="wheel__controls">
       <button class="round" id="prev" type="button" aria-label="Previous piece">←</button>
-      <p class="wheel__now" aria-live="polite"><b id="archiveIndex">01</b><span>/10</span> <span id="archiveName">—</span></p>
+      <button class="wheel__now" id="openFront" type="button">
+        <span class="wheel__count"><b id="archiveIndex">01</b>/<span id="archiveTotal">10</span></span>
+        <span class="wheel__name" id="archiveName">—</span>
+        <span class="wheel__kind" id="archiveKind"></span>
+        <span class="wheel__open">Open ↗</span>
+      </button>
       <button class="round" id="next" type="button" aria-label="Next piece">→</button>
     </div>
   </section>
@@ -134,10 +139,10 @@
         <p class="cell__spec label">Riso · Offset · Binding</p>
       </article>
       <article class="cell">
-        <p class="cell__q label">“Draw it.”</p>
-        <h3>Illustration</h3>
-        <p>Characters, editorial pictures and lettering made with brush, nib and the occasional thumbprint.</p>
-        <p class="cell__spec label">Editorial · Lettering · Mascots</p>
+        <p class="cell__q label">“Touch it.”</p>
+        <h3>Websites</h3>
+        <p>Quiet, fast sites with one or two interactions people remember. Designed and built in-house.</p>
+        <p class="cell__spec label">Design · Build · Motion</p>
       </article>
       <article class="cell">
         <p class="cell__q label">“Make it move.”</p>
@@ -159,13 +164,29 @@
 <footer class="foot" id="foot">
   <div class="foot__meta label">
     <span>Wet Ink Studio © 2026</span>
-    <span>Printed in Wet Red 485 U on 120 gsm uncoated</span>
+    <span>Printed in black and Riso orange on 120 gsm uncoated</span>
     <a href="#top">Back to top ↑</a>
   </div>
   <p class="foot__word" id="footWord" aria-label="Wet Ink">
     <span>W</span><span>E</span><span>T</span><span class="sp"> </span><span>I</span><span>N</span><span>K</span>
   </p>
 </footer>
+
+<!-- Archive detail sheet: rises out of the piece you opened, drag it down to put it back -->
+<div class="scrim" id="scrim" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="sheet__handle" id="sheetHandle">
+    <span class="sheet__grabber" aria-hidden="true"></span>
+    <div class="sheet__head">
+      <div>
+        <p class="label sheet__meta" id="sheetMeta"></p>
+        <h2 class="sheet__title" id="sheetTitle"></h2>
+      </div>
+      <button class="round round--ink" id="sheetClose" type="button" aria-label="Close">✕</button>
+    </div>
+  </div>
+  <div class="sheet__body" id="sheetBody"></div>
+</section>
 
 <!-- Shared symbol: the ink drop, used as logo, mascot and process drop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">

@@ -4,7 +4,9 @@
 - Never use **JetBrains Mono** (on this site or any future project for this user).
   Small labels, nav and captions use Archivo set narrow: `font-family: var(--label); font-stretch: 80%; font-weight: 600`, uppercase, slight tracking.
 - Type: Archivo (display + body, variable width) and Instrument Serif italic for the one emphasised word per heading.
-- Colour: paper `#E8E3D6`, ink `#131214`, one spot red `#E2231A`. Riso inks only inside artwork covers.
+- Colour: black and orange (the user rejected red as the main colour). Paper `#E8E3D6`, ink `#131214` as the main colour,
+  Riso orange `#FF6A2B` as a sparing accent (`#B9440F` for small orange text on paper). No red.
+- The hero word is "Wet ink": "ink" is set with a dotless ı and Blot sits as its dot. Never put an extra I in front.
 
 ## Motion rules (Apple fluid-interface principles)
 - Anything a person can grab runs on the `Spring` class in js/main.js (damping ratio + response), never CSS transitions.
@@ -19,4 +21,7 @@
 - Instagram: @wetink.studio — https://www.instagram.com/wetink.studio/
 - Email shown: hello@wetink.studio (placeholder until confirmed).
 - The "Selected work" section is removed for now; the user will supply past-work and archive images.
-  The archive carousel currently shows generated placeholder covers (`ARCHIVE` in js/main.js).
+  The archive shows example pieces (`ARCHIVE` in js/main.js): six interactive mock websites (`SITES`) and four
+  generated print covers. Each opens in a detail sheet.
+- Ink is a page-wide WebGL layer (two inks: black drops, orange trail). Keep it smooth: threshold at full device
+  resolution, never upscale a thresholded low-res bitmap.

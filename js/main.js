@@ -30,8 +30,8 @@
     }
     configure(damping, response) {
       this.damping = damping; this.response = response;
-      this.k = Math.pow(2 * Math.PI / response, 2);   // stiffness, unit mass
-      this.c = 4 * Math.PI * damping / response;      // damping coefficient
+      this.k = Math.pow(2 * Math.PI / response, 2);
+      this.c = 4 * Math.PI * damping / response;
       return this;
     }
     /* Re-target from the current value and velocity: interruptible by construction. */
@@ -43,7 +43,7 @@
     }
     jump(v) { this.value = this.target = v; this.velocity = 0; }
     step(dt) {
-      const n = Math.max(1, Math.ceil(dt * 240)), h = dt / n;   // fixed sub-steps keep stiff springs stable
+      const n = Math.max(1, Math.ceil(dt * 240)), h = dt / n;
       for (let i = 0; i < n; i++) {
         const a = -this.k * (this.value - this.target) - this.c * this.velocity;
         this.velocity += a * h;
@@ -54,7 +54,7 @@
     get resting() { return Math.abs(this.velocity) < this.precision && Math.abs(this.value - this.target) < this.precision; }
   }
 
-  /* One display-synced clock for everything that moves. A task returns true while it still needs frames. */
+  /* One display-synced clock for everything that moves. A task returns true while it needs frames. */
   const tasks = new Set();
   let clockOn = false, lastFrame = 0;
   function animate(task) {
@@ -62,12 +62,12 @@
     if (!clockOn) { clockOn = true; lastFrame = performance.now(); requestAnimationFrame(frame); }
   }
   function frame(now) {
-    const dt = Math.min(1 / 30, (now - lastFrame) / 1000); lastFrame = now;
+    const dt = Math.min(1 / 20, (now - lastFrame) / 1000); lastFrame = now;
     for (const t of tasks) if (!t(dt)) tasks.delete(t);
     if (tasks.size) requestAnimationFrame(frame); else clockOn = false;
   }
 
-  /* Velocity from the last ~80 ms of pointer history, not just the last event. */
+  /* Velocity from the last ~80 ms of pointer history. */
   function velocityTracker() {
     const h = [];
     return {
@@ -76,7 +76,7 @@
       get() {
         if (h.length < 2) return { x: 0, y: 0 };
         const a = h[0], b = h[h.length - 1];
-        if (performance.now() - b.t > 60) return { x: 0, y: 0 };   // finger stopped before lifting
+        if (performance.now() - b.t > 60) return { x: 0, y: 0 };   // stopped before lifting
         const dt = Math.max(.008, (b.t - a.t) / 1000);
         return { x: (b.x - a.x) / dt, y: (b.y - a.y) / dt };
       }
@@ -85,11 +85,41 @@
 
   /* Apple's momentum projection (exponential decay, like scroll deceleration). */
   const project = (v, rate = .998) => (v / 1000) * rate / (1 - rate);
-
   /* Progressive resistance past a boundary. */
   const rubberband = (over, dim, c = .55) => (over * dim * c) / (dim + c * Math.abs(over));
 
-  /* Seeded random so every cover renders the same way on every visit */
+  /* A reusable 1:1 horizontal drag with hysteresis, velocity and vertical-scroll handoff. */
+  function hDrag(el, { start, move, end, tap }) {
+    let s = null;
+    const tr = velocityTracker();
+    el.addEventListener("pointerdown", e => {
+      if (e.button) return;
+      s = { id: e.pointerId, x: e.clientX, y: e.clientY, on: false };
+      tr.reset(); tr.add(e.clientX, 0);
+      start && start(e);
+    });
+    el.addEventListener("pointermove", e => {
+      if (!s || e.pointerId !== s.id) return;
+      const dx = e.clientX - s.x, dy = e.clientY - s.y;
+      if (!s.on) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        if (Math.abs(dy) > Math.abs(dx)) { s = null; return; }   // vertical intent: the page scrolls
+        s.on = true; s.x = e.clientX; el.setPointerCapture(e.pointerId);
+      }
+      tr.add(e.clientX, 0);
+      move(e.clientX - s.x, e);
+    });
+    const up = e => {
+      if (!s || e.pointerId !== s.id) return;
+      const was = s.on; s = null;
+      if (was) end(tr.get().x, e); else tap && tap(e);
+    };
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    return { get dragging() { return !!(s && s.on); } };
+  }
+
+  /* Seeded random so every generated piece renders the same way on every visit */
   const rng = seed => () => {
     seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -105,252 +135,338 @@
     dryEl.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   }, 1000);
 
-  /* ======================================================= hero ink field
-     Metaballs: soft circles summed into a low-res alpha field, then thresholded.
-     Pixels just over the threshold are painted darker: the rim real ink leaves as it dries. */
-  const hero = $(".hero");
-  const canvas = $("#inkCanvas");
-  const ctx = canvas.getContext("2d");
-  const field = document.createElement("canvas");
-  const fctx = field.getContext("2d", { willReadFrequently: true });
-  const SCALE = 0.5;
-  let W = 0, H = 0, particles = [], inkRunning = false, heroVisible = true;
+  /* ============================================================ ink layer
+     WebGL metaballs over the whole page, in two inks (black, Riso orange).
+     Pass 1 adds soft gaussian sprites into a half-resolution field (R = black, G = orange).
+     Pass 2 runs at full device resolution and thresholds the bilinearly filtered field with
+     smoothstep, so edges are smooth curves instead of pixels. The field's slope gives a wet sheen. */
+  const ink = (() => {
+    const cv = document.createElement("canvas");
+    cv.className = "ink-layer"; cv.setAttribute("aria-hidden", "true");
+    document.body.appendChild(cv);
+    const gl = cv.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: false, depth: false, stencil: false });
+    const parts = [];
+    if (!gl) return { spawn() {}, count: () => 0 };
 
-  function sizeInk() {
-    const r = hero.getBoundingClientRect();
-    W = Math.max(1, Math.round(r.width * SCALE));
-    H = Math.max(1, Math.round(r.height * SCALE));
-    canvas.width = field.width = W;
-    canvas.height = field.height = H;
-  }
-  sizeInk();
-  addEventListener("resize", sizeInk);
+    const FIELD = .5, dpr = Math.min(2, devicePixelRatio || 1);
+    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    const prog = (vs, fs) => {
+      const p = gl.createProgram();
+      gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(p); return p;
+    };
+    const sprite = prog(`
+      attribute vec2 a_pos; attribute vec2 a_uv; attribute vec2 a_amt;
+      uniform vec2 u_view; varying vec2 v_uv; varying vec2 v_amt;
+      void main() { vec2 c = a_pos / u_view * 2.0 - 1.0; gl_Position = vec4(c.x, -c.y, 0.0, 1.0); v_uv = a_uv; v_amt = a_amt; }`, `
+      precision mediump float; varying vec2 v_uv; varying vec2 v_amt;
+      void main() { float d2 = dot(v_uv, v_uv); float a = exp(-4.0 * d2) * step(d2, 1.0); gl_FragColor = vec4(v_amt * a, 0.0, 0.0); }`);
+    const comp = prog(`
+      attribute vec2 a_pos; varying vec2 v_uv;
+      void main() { v_uv = a_pos * 0.5 + 0.5; gl_Position = vec4(a_pos, 0.0, 1.0); }`, `
+      precision highp float;
+      uniform sampler2D u_f; uniform vec2 u_px; varying vec2 v_uv;
+      const float T = 0.36; const float W = 0.022;
+      const vec3 BLACK = vec3(0.10, 0.094, 0.10);  const vec3 BLACK_RIM = vec3(0.035, 0.03, 0.035);
+      const vec3 ORANGE = vec3(1.0, 0.416, 0.169); const vec3 ORANGE_RIM = vec3(0.76, 0.27, 0.06);
+      float sum(vec2 uv) { vec2 f = texture2D(u_f, uv).rg; return f.r + f.g; }
+      void main() {
+        vec2 f = texture2D(u_f, v_uv).rg;
+        float kb = smoothstep(T - W, T + W, f.r);
+        float ko = smoothstep(T - W, T + W, f.g);
+        float a = kb + ko * (1.0 - kb);
+        if (a < 0.002) { gl_FragColor = vec4(0.0); return; }
+        vec3 cb = mix(BLACK_RIM, BLACK, smoothstep(T, T + 0.2, f.r));
+        vec3 co = mix(ORANGE_RIM, ORANGE, smoothstep(T, T + 0.2, f.g));
+        vec3 col = (cb * kb + co * ko * (1.0 - kb)) / a;
+        float sx = sum(v_uv + vec2(u_px.x, 0.0)) - sum(v_uv - vec2(u_px.x, 0.0));
+        float sy = sum(v_uv + vec2(0.0, u_px.y)) - sum(v_uv - vec2(0.0, u_px.y));
+        vec3 n = normalize(vec3(-sx * 5.0, -sy * 5.0, 1.0));
+        vec3 L = normalize(vec3(-0.45, 0.55, 0.7));
+        float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 30.0);
+        float core = smoothstep(T + 0.04, T + 0.3, f.r + f.g);
+        col += spec * 0.5 * core;
+        gl_FragColor = vec4(col * a, a);
+      }`);
 
-  const MAX = 460;
-  function spawn(p) {
-    if (particles.length > MAX) particles.splice(0, particles.length - MAX);
-    particles.push(Object.assign({ vx: 0, vy: 0, age: 0, grow: 1.25, life: 2.6, drip: false }, p));
-    if (!inkRunning && heroVisible) { inkRunning = true; animate(tickInk); }
-  }
+    // field target: half-float if the device supports rendering and filtering it, else bytes
+    const hf = gl.getExtension("OES_texture_half_float");
+    const hfl = gl.getExtension("OES_texture_half_float_linear");
+    gl.getExtension("EXT_color_buffer_half_float");
+    const tex = gl.createTexture(), fbo = gl.createFramebuffer();
+    let texType = hf && hfl ? hf.HALF_FLOAT_OES : gl.UNSIGNED_BYTE;
+    let FW = 1, FH = 1, VW = 1, VH = 1;
+    function alloc() {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, FW, FH, 0, gl.RGBA, texType, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      if (texType !== gl.UNSIGNED_BYTE && gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) { texType = gl.UNSIGNED_BYTE; alloc(); }
+    }
+    function size() {
+      VW = innerWidth; VH = innerHeight;
+      cv.width = Math.round(VW * dpr); cv.height = Math.round(VH * dpr);
+      FW = Math.max(1, Math.ceil(VW * FIELD)); FH = Math.max(1, Math.ceil(VH * FIELD));
+      alloc();
+    }
+    size();
+    addEventListener("resize", () => { size(); if (parts.length) animate(task); });
 
+    const quad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+    const vbuf = gl.createBuffer();
+    const MAX = 520;
+    const verts = new Float32Array(MAX * 6 * 6);
+    const loc = {
+      pos: gl.getAttribLocation(sprite, "a_pos"), uv: gl.getAttribLocation(sprite, "a_uv"), amt: gl.getAttribLocation(sprite, "a_amt"),
+      view: gl.getUniformLocation(sprite, "u_view"),
+      cpos: gl.getAttribLocation(comp, "a_pos"), f: gl.getUniformLocation(comp, "u_f"), px: gl.getUniformLocation(comp, "u_px")
+    };
+    const CORNERS = [[-1, -1], [1, -1], [-1, 1], [-1, 1], [1, -1], [1, 1]];
+
+    function spawn(p) {
+      if (parts.length >= MAX) parts.splice(0, parts.length - MAX + 1);
+      parts.push(Object.assign({ vx: 0, vy: 0, age: 0, grow: 1.2, life: 2.6, drip: false, c: 0 }, p));
+      animate(task);
+    }
+
+    let running = false;
+    function task(dt) {
+      if (document.body.classList.contains("sheet-covered")) return parts.length > 0;   // hidden under a sheet: skip the work
+      // simulate (page coordinates)
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i];
+        p.age += dt;
+        if (p.age >= p.life) { parts.splice(i, 1); continue; }
+        p.x += p.vx * dt; p.y += p.vy * dt;                       // paper soaks the ink up
+        p.vx *= Math.pow(.02, dt); p.vy *= p.drip ? Math.pow(.55, dt) : Math.pow(.02, dt);
+        if (p.drip && p.vy > 8 && Math.random() < .6 && parts.length < MAX - 4) {
+          parts.push({ x: p.x + (Math.random() - .5) * 2, y: p.y, r: p.r * .8, tr: p.tr * (.75 + Math.random() * .2), life: 4 + Math.random() * 2, vx: 0, vy: 0, age: 0, grow: 1.2, c: p.c });
+        }
+      }
+      // pass 1: field
+      const sx = scrollX, sy = scrollY;
+      let n = 0;
+      for (const p of parts) {
+        const k = p.age / p.life;
+        const grown = lerp(p.r, p.tr * p.grow, 1 - Math.pow(1 - Math.min(1, p.age * 2.2), 3));
+        const rad = grown * (k > .65 ? 1 - (k - .65) / .35 : 1);  // evaporate in the last third
+        if (rad <= .5) continue;
+        const S = rad * 2, x = p.x - sx, y = p.y - sy;
+        if (x < -S || x > VW + S || y < -S || y > VH + S) continue;
+        const ab = p.c ? 0 : 1, ao = p.c ? 1 : 0;
+        for (const [u, v] of CORNERS) {
+          const o = n * 6; verts[o] = x + u * S; verts[o + 1] = y + v * S; verts[o + 2] = u; verts[o + 3] = v; verts[o + 4] = ab; verts[o + 5] = ao; n++;
+        }
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.viewport(0, 0, FW, FH);
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      if (n) {
+        gl.useProgram(sprite);
+        gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbuf);
+        gl.bufferData(gl.ARRAY_BUFFER, verts.subarray(0, n * 6), gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(loc.pos); gl.vertexAttribPointer(loc.pos, 2, gl.FLOAT, false, 24, 0);
+        gl.enableVertexAttribArray(loc.uv); gl.vertexAttribPointer(loc.uv, 2, gl.FLOAT, false, 24, 8);
+        gl.enableVertexAttribArray(loc.amt); gl.vertexAttribPointer(loc.amt, 2, gl.FLOAT, false, 24, 16);
+        gl.uniform2f(loc.view, VW, VH);
+        gl.drawArrays(gl.TRIANGLES, 0, n);
+        gl.disableVertexAttribArray(loc.uv); gl.disableVertexAttribArray(loc.amt);
+      }
+      // pass 2: composite at device resolution
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, cv.width, cv.height);
+      gl.disable(gl.BLEND);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      if (n) {
+        gl.useProgram(comp);
+        gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+        gl.enableVertexAttribArray(loc.cpos); gl.vertexAttribPointer(loc.cpos, 2, gl.FLOAT, false, 8, 0);
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.uniform1i(loc.f, 0); gl.uniform2f(loc.px, 1 / FW, 1 / FH);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+      running = parts.length > 0;
+      return running;
+    }
+    // ink lives in page space, so scrolling needs a redraw while any is on screen
+    addEventListener("scroll", () => { if (parts.length) animate(task); }, { passive: true });
+    return { spawn, count: () => parts.length };
+  })();
+
+  const BLACK = 0, ORANGE = 1;
   /* A drop inherits the stroke's velocity, so a moving press throws its splash forward. */
-  function dropInk(x, y, size = 1, vx = 0, vy = 0) {
+  function dropInk(x, y, size = 1, vx = 0, vy = 0, color = BLACK, accent = .3) {
     const R = (34 + Math.random() * 30) * size;
-    spawn({ x, y, r: R * .35, tr: R, life: 11, grow: 1, vx: vx * .15, vy: vy * .15 });
+    ink.spawn({ x, y, r: R * .35, tr: R, life: 11, grow: 1, vx: vx * .15, vy: vy * .15, c: color });
     const n = 7 + (Math.random() * 7 | 0);
     for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const d = R * (0.6 + Math.random() * 0.9);
-      const sp = 140 + Math.random() * 260;
-      spawn({ x: x + Math.cos(a) * d * .3, y: y + Math.sin(a) * d * .3,
-              vx: Math.cos(a) * sp * size + vx * .45, vy: Math.sin(a) * sp * size + vy * .45,
-              r: 3, tr: (5 + Math.random() * 12) * size, life: 7 + Math.random() * 4, grow: 1 });
+      const a = Math.random() * Math.PI * 2, d = R * (0.6 + Math.random() * 0.9), sp = 140 + Math.random() * 260;
+      ink.spawn({ x: x + Math.cos(a) * d * .3, y: y + Math.sin(a) * d * .3,
+                  vx: Math.cos(a) * sp * size + vx * .45, vy: Math.sin(a) * sp * size + vy * .45,
+                  r: 3, tr: (5 + Math.random() * 12) * size, life: 7 + Math.random() * 4, grow: 1,
+                  c: Math.random() < accent ? 1 - color : color });
     }
+    if (reduced) return;
     const runs = 1 + (Math.random() < .5 ? 1 : 0);   // one or two runs crawl down the page
     for (let i = 0; i < runs; i++) {
-      spawn({ x: x + (Math.random() - .5) * R, y: y + R * .4, vy: 60 + Math.random() * 60,
-              r: 8, tr: 9 * size, life: 6 + Math.random() * 3, drip: true, grow: 1 });
+      ink.spawn({ x: x + (Math.random() - .5) * R, y: y + R * .4, vy: 60 + Math.random() * 60,
+                  r: 8, tr: 9 * size, life: 6 + Math.random() * 3, drip: true, grow: 1, c: color });
     }
   }
 
-  const T = 120, RIM = 18;
-  function tickInk(dt) {
-    if (!heroVisible) { inkRunning = false; return false; }
-    fctx.clearRect(0, 0, W, H);
-    fctx.globalCompositeOperation = "lighter";
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.age += dt;
-      const k = p.age / p.life;
-      if (k >= 1) { particles.splice(i, 1); continue; }
-      p.x += p.vx * dt; p.y += p.vy * dt;                       // paper soaks up the ink
-      p.vx *= Math.pow(.02, dt); p.vy *= p.drip ? Math.pow(.55, dt) : Math.pow(.02, dt);
-      if (p.drip && p.vy > 8 && Math.random() < .6) {
-        spawn({ x: p.x + (Math.random() - .5) * 2, y: p.y, r: p.r * .8, tr: p.tr * (.75 + Math.random() * .2), life: 4 + Math.random() * 2 });
-      }
-      const grown = lerp(p.r, p.tr * p.grow, 1 - Math.pow(1 - Math.min(1, p.age * 2.2), 3));
-      const rad = grown * (k > .65 ? 1 - (k - .65) / .35 : 1);    // evaporate in the last third
-      if (rad <= .5) continue;
-      const x = p.x * SCALE, y = p.y * SCALE, R = rad * SCALE * 1.9;
-      const g = fctx.createRadialGradient(x, y, 0, x, y, R);
-      g.addColorStop(0, "rgba(0,0,0,1)");
-      g.addColorStop(.5, "rgba(0,0,0,.5)");
-      g.addColorStop(1, "rgba(0,0,0,0)");
-      fctx.fillStyle = g;
-      fctx.beginPath(); fctx.arc(x, y, R, 0, Math.PI * 2); fctx.fill();
-    }
-    const src = fctx.getImageData(0, 0, W, H);
-    const out = ctx.createImageData(W, H);
-    const s = src.data, o = out.data;
-    for (let i = 3; i < s.length; i += 4) {
-      const a = s[i];
-      if (a < T - 14) continue;
-      if (a < T) { o[i - 3] = 150; o[i - 2] = 14; o[i - 1] = 10; o[i] = (a - T + 14) * 18; continue; } // soft edge
-      if (a < T + RIM) { o[i - 3] = 150; o[i - 2] = 14; o[i - 1] = 10; }                                // dried rim
-      else { o[i - 3] = 226; o[i - 2] = 35; o[i - 1] = 26; }                                              // wet red
-      o[i] = 255;
-    }
-    ctx.putImageData(out, 0, 0);
-    if (particles.length) return true;
-    ctx.clearRect(0, 0, W, H); inkRunning = false; return false;
-  }
-
-  new IntersectionObserver(([en]) => {
-    heroVisible = en.isIntersecting;
-    if (heroVisible && particles.length && !inkRunning) { inkRunning = true; animate(tickInk); }
-  }).observe(hero);
-
-  const heroPoint = e => { const r = hero.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  /* ============================================================ hero + trail */
+  const hero = $(".hero");
+  const sheetOpen = () => !$("#sheet").hidden;
   const stroke = velocityTracker();
   let lastTrail = null, touchStart = null;
 
-  // Continuous feedback: the pointer draws the whole time it moves (mouse and pen only; touch scrolls).
-  hero.addEventListener("pointermove", e => {
-    if (e.pointerType === "touch" || mascotState.active) return;
-    const p = heroPoint(e);
-    stroke.add(p.x, p.y);
-    if (reduced) return;
+  // Continuous feedback: an orange trail follows the pointer anywhere on the page (mouse and pen).
+  addEventListener("pointermove", e => {
+    if (e.pointerType === "touch" || reduced || sheetOpen() || mascotState.active || archiveDragging()) { lastTrail = null; return; }
+    const x = e.pageX, y = e.pageY;
+    stroke.add(e.clientX, e.clientY);
     if (lastTrail) {
-      const dx = p.x - lastTrail.x, dy = p.y - lastTrail.y, dist = Math.hypot(dx, dy);
+      const dx = x - lastTrail.x, dy = y - lastTrail.y, dist = Math.hypot(dx, dy);
       if (dist < 7) return;
       const speed = clamp(dist / 40, 0, 1);   // fast strokes lay thinner ink, like a dragged brush
-      spawn({ x: p.x, y: p.y, r: 4, tr: lerp(22, 9, speed), life: 2.2 + Math.random(), vx: dx * .4, vy: dy * .4 });
+      const n = Math.min(12, Math.ceil(dist / 8));   // fill the gap between events so the line stays continuous
+      for (let i = 1; i <= n; i++) {
+        ink.spawn({ x: lastTrail.x + dx * i / n, y: lastTrail.y + dy * i / n, r: 4, tr: lerp(16, 7, speed),
+                    life: 1.9 + Math.random() * .6, vx: dx * .3, vy: dy * .3, c: ORANGE });
+      }
     }
-    lastTrail = p;
+    lastTrail = { x, y };
   }, { passive: true });
-  hero.addEventListener("pointerleave", () => { lastTrail = null; stroke.reset(); });
+  document.addEventListener("pointerleave", () => { lastTrail = null; });
 
-  // Respond on press, not on release. Touch waits for the tap to resolve so scrolling never splashes.
+  // Respond on press. Touch waits for the tap to resolve so scrolling never splashes.
   hero.addEventListener("pointerdown", e => {
     if (e.target.closest("button, a")) return;
-    const p = heroPoint(e);
-    if (e.pointerType === "touch") { touchStart = { ...p, t: performance.now() }; return; }
+    if (e.pointerType === "touch") { touchStart = { x: e.pageX, y: e.pageY, t: performance.now() }; return; }
     const v = stroke.get();
-    dropInk(p.x, p.y, reduced ? .8 : 1, v.x, v.y);
+    dropInk(e.pageX, e.pageY, 1, v.x, v.y, BLACK);
   });
   hero.addEventListener("pointerup", e => {
     if (e.pointerType !== "touch" || !touchStart) return;
-    const p = heroPoint(e);
-    if (Math.hypot(p.x - touchStart.x, p.y - touchStart.y) < 10 && performance.now() - touchStart.t < 500) dropInk(p.x, p.y, .7);
+    if (Math.hypot(e.pageX - touchStart.x, e.pageY - touchStart.y) < 10 && performance.now() - touchStart.t < 500) dropInk(e.pageX, e.pageY, .7, 0, 0, BLACK);
     touchStart = null;
   });
   hero.addEventListener("pointercancel", () => { touchStart = null; });
-
   if (!finePointer) $("#heroHint").textContent = "Tap to drop ink · Throw Blot";
 
   // A first drop, so the page shows what it does before anyone touches it.
   setTimeout(() => {
     const r = hero.getBoundingClientRect();
-    dropInk(r.width * .8, r.height * .3, clamp(r.width / 1200, .55, 1.2));
+    dropInk(r.left + scrollX + r.width * .8, r.top + scrollY + r.height * .3, clamp(r.width / 1200, .55, 1.2), 0, 0, BLACK, .4);
   }, reduced ? 100 : 700);
 
   /* ================================================================ Blot
-     A direct-manipulation toy: grab it where you grabbed it, drag it 1:1 with a
-     rubber-band leash, throw it. It springs home carrying your release velocity. */
+     Grab it where you grabbed it, drag it 1:1 on a rubber-band leash, throw it.
+     It springs home carrying your release velocity. */
   const mascot = $("#mascot");
   const pupils = $$(".pupil", mascot);
   const mx = new Spring(0, { damping: .55, response: .5, precision: .05 });
   const my = new Spring(reduced ? 0 : -260, { damping: .55, response: .5, precision: .05 });
-  const sx = new Spring(1, { damping: .45, response: .3, precision: .001 });
-  const sy = new Spring(1, { damping: .45, response: .3, precision: .001 });
+  const msx = new Spring(1, { damping: .45, response: .3, precision: .001 });
+  const msy = new Spring(1, { damping: .45, response: .3, precision: .001 });
   const px = new Spring(0, { damping: 1, response: .18, precision: .005 });
   const py = new Spring(0, { damping: 1, response: .18, precision: .005 });
   const mascotState = { active: false, dragging: false, id: null, start: null, origin: null };
   const mtrack = velocityTracker();
 
   function renderMascot() {
-    mascot.style.transform = `translate3d(${mx.value}px, ${my.value}px, 0) scale(${sx.value}, ${sy.value})`;
+    mascot.style.transform = `translate3d(${mx.value}px, ${my.value}px, 0) scale(${msx.value}, ${msy.value})`;
     pupils.forEach(p => p.setAttribute("transform", `translate(${px.value.toFixed(2)} ${py.value.toFixed(2)})`));
   }
-  const mascotSprings = [mx, my, sx, sy, px, py];
+  const mascotSprings = [mx, my, msx, msy, px, py];
   function mascotTask(dt) {
     mascotSprings.forEach(s => { if (!(mascotState.dragging && (s === mx || s === my))) s.step(dt); });
     renderMascot();
     return mascotState.dragging || mascotSprings.some(s => !s.resting);
   }
   renderMascot();
-  // Entrance: it falls into the dot of the i. A fall carries momentum, so it may bounce.
-  if (!reduced) setTimeout(() => { my.to(0, { velocity: 900 }); sy.to(1, { velocity: -3 }); animate(mascotTask); }, 250);
+  // Entrance: it falls into place as the dot of the ı. A fall carries momentum, so it may bounce.
+  if (!reduced) setTimeout(() => { my.to(0, { velocity: 900 }); msy.to(1, { velocity: -3 }); animate(mascotTask); }, 250);
 
-  function lookAt(cx, cy, tx, ty) {
-    const a = Math.atan2(ty - cy, tx - cx);
-    const d = clamp(Math.hypot(tx - cx, ty - cy) / 80, 0, 1) * 2.6;
-    px.to(Math.cos(a) * d); py.to(Math.sin(a) * d);
-    animate(mascotTask);
-  }
   addEventListener("pointermove", e => {
     if (mascotState.dragging || reduced) return;
     const b = mascot.getBoundingClientRect();
-    lookAt(b.left + b.width / 2, b.top + b.height * .62, e.clientX, e.clientY);
+    const cx = b.left + b.width / 2, cy = b.top + b.height * .62;
+    const a = Math.atan2(e.clientY - cy, e.clientX - cx);
+    const d = clamp(Math.hypot(e.clientX - cx, e.clientY - cy) / 80, 0, 1) * 2.6;
+    px.to(Math.cos(a) * d); py.to(Math.sin(a) * d);
+    animate(mascotTask);
   }, { passive: true });
+
+  const mascotPage = () => { const b = mascot.getBoundingClientRect(); return { x: b.left + scrollX + b.width / 2, y: b.top + scrollY + b.height * .7, w: b.width }; };
 
   mascot.addEventListener("pointerdown", e => {
     e.preventDefault();
     mascot.setPointerCapture(e.pointerId);
     Object.assign(mascotState, { active: true, dragging: false, id: e.pointerId,
-      start: { x: e.clientX, y: e.clientY }, origin: { x: mx.value, y: my.value } });   // presentation value: no jump
+      start: { x: e.clientX, y: e.clientY }, origin: { x: mx.value, y: my.value } });   // from the presentation value
     mx.velocity = my.velocity = 0;
     mtrack.reset(); mtrack.add(e.clientX, e.clientY);
-    sx.to(1.12, { response: .15, damping: .7 }); sy.to(.88, { response: .15, damping: .7 });   // instant press squish
+    msx.to(1.12, { response: .15, damping: .7 }); msy.to(.88, { response: .15, damping: .7 });   // instant press squish
     animate(mascotTask);
   });
-
   mascot.addEventListener("pointermove", e => {
     if (!mascotState.active || e.pointerId !== mascotState.id) return;
     const dx = e.clientX - mascotState.start.x, dy = e.clientY - mascotState.start.y;
-    if (!mascotState.dragging && Math.hypot(dx, dy) > 10) mascotState.dragging = true;   // hysteresis before committing
+    if (!mascotState.dragging && Math.hypot(dx, dy) > 10) mascotState.dragging = true;
     if (!mascotState.dragging) return;
     mtrack.add(e.clientX, e.clientY);
-    // free inside the leash, rubber-banded beyond it
     let x = mascotState.origin.x + dx, y = mascotState.origin.y + dy;
     const leash = Math.min(hero.clientWidth * .35, 260), d = Math.hypot(x, y);
     if (d > leash) { const k = (leash + rubberband(d - leash, 320)) / d; x *= k; y *= k; }
     mx.jump(x); my.jump(y);
-    // stretch along the direction of travel: speed reads as shape
-    const v = mtrack.get(), sp = Math.hypot(v.x, v.y) || 1, st = clamp(sp / 4000, 0, .3);
-    sx.to(1 + st * Math.abs(v.x) / sp - st * .5 * Math.abs(v.y) / sp, { response: .12, damping: 1 });
-    sy.to(1 + st * Math.abs(v.y) / sp - st * .5 * Math.abs(v.x) / sp, { response: .12, damping: 1 });
-    px.to(clamp(v.x / 400, -2.6, 2.6)); py.to(clamp(v.y / 400, -2.6, 2.6));   // looks where it's going
-    // Blot is made of ink: it leaves a trail
-    const b = mascot.getBoundingClientRect(), h = hero.getBoundingClientRect();
-    if (!reduced) spawn({ x: b.left - h.left + b.width / 2, y: b.top - h.top + b.height * .65, r: 4, tr: 10 + b.width * .12, life: 2.4 });
+    const v = mtrack.get(), sp = Math.hypot(v.x, v.y) || 1, st = clamp(sp / 4000, 0, .3);   // speed reads as stretch
+    msx.to(1 + st * Math.abs(v.x) / sp - st * .5 * Math.abs(v.y) / sp, { response: .12, damping: 1 });
+    msy.to(1 + st * Math.abs(v.y) / sp - st * .5 * Math.abs(v.x) / sp, { response: .12, damping: 1 });
+    px.to(clamp(v.x / 400, -2.6, 2.6)); py.to(clamp(v.y / 400, -2.6, 2.6));
+    const m = mascotPage();
+    if (!reduced) ink.spawn({ x: m.x, y: m.y - m.w * .1, r: 4, tr: 9 + m.w * .12, life: 2.4, c: ORANGE });
   });
-
   function releaseMascot(e) {
     if (!mascotState.active || e.pointerId !== mascotState.id) return;
     const wasDrag = mascotState.dragging;
     mascotState.active = mascotState.dragging = false;
-    const b = mascot.getBoundingClientRect(), h = hero.getBoundingClientRect();
-    const cx = b.left - h.left + b.width / 2, cy = b.top - h.top + b.height * .7;
+    const m = mascotPage();
     if (wasDrag) {
       const v = mtrack.get(), speed = Math.hypot(v.x, v.y);
-      // A real throw lands somewhere: splash where the momentum would carry it.
-      if (speed > 900) {
-        const lx = clamp(cx + project(v.x, .99), 20, h.width - 20), ly = clamp(cy + project(v.y, .99), 20, h.height - 20);
-        dropInk(lx, ly, .8, v.x, v.y);
+      if (speed > 900) {   // a real throw lands somewhere: splash where the momentum would carry it
+        const h = hero.getBoundingClientRect();
+        const lx = clamp(m.x + project(v.x, .99), h.left + scrollX + 20, h.right + scrollX - 20);
+        const ly = clamp(m.y + project(v.y, .99), h.top + scrollY + 20, h.bottom + scrollY - 20);
+        dropInk(lx, ly, .8, v.x, v.y, ORANGE, .25);
       }
-      // Hand the release velocity to the spring: no seam between drag and animation.
-      mx.to(0, { velocity: v.x, damping: .55, response: .5 });
+      mx.to(0, { velocity: v.x, damping: .55, response: .5 });   // hand off the release velocity
       my.to(0, { velocity: v.y, damping: .55, response: .5 });
     } else {
-      dropInk(cx, cy + 6, .6);
+      dropInk(m.x, m.y + 6, .6, 0, 0, ORANGE, .3);
     }
-    sx.to(1, { velocity: wasDrag ? 0 : -4, damping: .4, response: .35 });
-    sy.to(1, { velocity: wasDrag ? 0 : 5, damping: .4, response: .35 });
+    msx.to(1, { velocity: wasDrag ? 0 : -4, damping: .4, response: .35 });
+    msy.to(1, { velocity: wasDrag ? 0 : 5, damping: .4, response: .35 });
     animate(mascotTask);
   }
   mascot.addEventListener("pointerup", releaseMascot);
   mascot.addEventListener("pointercancel", releaseMascot);
-  // keyboard activation (Enter / Space) gets the same tap response
-  mascot.addEventListener("click", e => {
+  mascot.addEventListener("click", e => {   // keyboard activation gets the same tap response
     if (e.detail !== 0) return;
-    const b = mascot.getBoundingClientRect(), h = hero.getBoundingClientRect();
-    dropInk(b.left - h.left + b.width / 2, b.bottom - h.top, .6);
-    sy.to(1, { velocity: 5, damping: .4, response: .35 }); sx.to(1, { velocity: -4, damping: .4, response: .35 });
+    const m = mascotPage();
+    dropInk(m.x, m.y + 6, .6, 0, 0, ORANGE, .3);
+    msy.to(1, { velocity: 5, damping: .4, response: .35 }); msx.to(1, { velocity: -4, damping: .4, response: .35 });
     animate(mascotTask);
   });
 
-  /* ======================================================== ticker
+  /* ============================================================ ticker
      Drifts slowly; your scroll adds its speed and direction, then eases back. */
   const ticker = $("#ticker");
   const tickVel = new Spring(0, { damping: 1, response: .6, precision: .5 });
@@ -366,7 +482,7 @@
   }
   new IntersectionObserver(([en]) => { tickVisible = en.isIntersecting; if (tickVisible) animate(tickerTask); }).observe(ticker);
 
-  /* ======================================================== story chapter (scroll-linked, 1:1) */
+  /* ============================================================ story (scroll-linked, 1:1) */
   const story = $(".story");
   const stack = $("#stack");
   const drop3d = $("#drop3d");
@@ -381,19 +497,17 @@
     const r = story.getBoundingClientRect();
     const p = clamp(-r.top / (r.height - innerHeight), 0, 1);
     const h = stack.clientHeight;
-    const spread = clamp(p * 2.2, 0, 1);
-    const gap = lerp(10, Math.min(h / 6.2, 110), 1 - Math.pow(1 - spread, 3));
+    const gap = lerp(10, Math.min(h / 6.2, 110), 1 - Math.pow(1 - clamp(p * 2.2, 0, 1), 3));
     const spin = p * 220, discY = [];
     discs.forEach((d, i) => {
       const y = (i - 2) * gap; discY.push(y);
       d.style.transform = `translate3d(0, ${y}px, 0) rotateX(72deg) rotateZ(${spin + i * 18}deg)`;
     });
-    const top = -2 * gap - h * .32, bottom = 2 * gap + 30;
-    const dy = lerp(top, bottom, clamp((p - .12) / .8, 0, 1));
+    const dy = lerp(-2 * gap - h * .32, 2 * gap + 30, clamp((p - .12) / .8, 0, 1));
     drop3d.style.transform = `translate3d(0, ${dy}px, 60px)`;
     discs.forEach((d, i) => d.classList.toggle("is-lit", dy > discY[i] - 4));
     steps.forEach((s, i) => s.classList.toggle("is-on", dy > discY[i] - 4 || (i === 0 && p > .02)));
-    // Lines sit in order: earlier ones wait above, later ones below. Scrolling back reverses the path.
+    // earlier lines wait above, later ones below: scrolling back reverses the path
     const li = Math.min(lines.length - 1, Math.floor(p * lines.length * 1.02));
     if (li !== lineIndex) {
       lineIndex = li;
@@ -402,15 +516,14 @@
     storyBar.style.transform = `scaleX(${p})`;
   }
 
-  /* ======================================================== covers */
-  const C = { paper: "#E8E3D6", ink: "#131214", wet: "#E2231A", pink: "#FF48B0", blue: "#0078BF", yellow: "#FFE800", green: "#00A95C" };
-
+  /* ============================================================ print covers (SVG) */
+  const C = { paper: "#E8E3D6", ink: "#131214", orange: "#FF6A2B", cream: "#F4EFE6", blue: "#0078BF", pink: "#FF48B0", grey: "#9C968A" };
   function splatPath(rand, cx, cy, R) {
     const n = 36, pts = [];
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2;
       let r = R * (0.78 + rand() * 0.3);
-      if (rand() < .16) r *= 1.35 + rand() * .5;   // a splash spike
+      if (rand() < .16) r *= 1.35 + rand() * .5;
       pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
     }
     let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
@@ -420,9 +533,8 @@
     }
     return d + "Z";
   }
-
-  function cover(seed, { bg, a, b, glyph, label, style = "splat" }) {
-    const rand = rng(seed), id = "h" + seed;
+  function cover(seed, { bg, a, b, glyph, label, style }, idp) {
+    const rand = rng(seed), id = idp + seed;
     let shapes = "";
     if (style === "splat") {
       shapes += `<path d="${splatPath(rand, 120 + rand() * 160, 160 + rand() * 180, 110 + rand() * 40)}" fill="${a}"/>`;
@@ -441,59 +553,296 @@
       }
       shapes += `<circle cx="${100 + rand() * 200}" cy="420" r="30" fill="${b}"/>`;
     }
+    const textFill = bg === C.ink ? C.paper : C.ink;
     return `<svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${label}">
       <defs><pattern id="${id}" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(${(rand() * 45).toFixed(0)})"><circle cx="4.5" cy="4.5" r="1.6" fill="${b}" opacity=".55"/></pattern></defs>
       <rect width="400" height="500" fill="${bg}"/>
-      <rect width="400" height="500" fill="url(#${id})" opacity=".5"/>
+      <rect width="400" height="500" fill="url(#${id})" opacity=".45"/>
       ${shapes}
-      <text x="22" y="476" font-family="Archivo, Arial, sans-serif" font-weight="900" font-size="210" letter-spacing="-12" fill="${C.ink}" style="mix-blend-mode:multiply">${glyph}</text>
-      <text x="22" y="34" font-family="Archivo, Arial, sans-serif" font-stretch="80%" font-weight="600" font-size="13" letter-spacing="1" fill="${C.ink}">${label.toUpperCase()}</text>
+      <text x="22" y="476" font-family="Archivo, Arial, sans-serif" font-weight="900" font-size="210" letter-spacing="-12" fill="${textFill}" ${bg === C.ink ? "" : 'style="mix-blend-mode:multiply"'}>${glyph}</text>
+      <text x="22" y="34" font-family="Archivo, Arial, sans-serif" font-stretch="80%" font-weight="600" font-size="13" letter-spacing="1" fill="${textFill}">${label.toUpperCase()}</text>
     </svg>`;
   }
 
-  /* ======================================================== archive wheel
-     1:1 drag (the front panel stays under your finger), flick projection,
-     snap to the nearest piece, velocity handed to the spring. Grab it mid-spin to stop it. */
-  // Placeholder covers until the studio's archive images arrive.
+  /* ============================================================ mock websites
+     Each is a small, working site. Sizes are in container units (cqw), so the same markup
+     reads correctly as a thumbnail on the wheel and full size in the sheet. */
+  const browser = (url, inner) => `<div class="browser"><div class="browser__bar"><i></i><i></i><i></i><span>${url}</span></div>${inner}</div>`;
+
+  /* small helper: a pill that slides between options on a critically damped spring */
+  function slidingPill(group, pill, buttons, onPick) {
+    const x = new Spring(0, { damping: 1, response: .32, precision: .1 });
+    const w = new Spring(0, { damping: 1, response: .32, precision: .1 });
+    const draw = dt => { x.step(dt); w.step(dt); pill.style.transform = `translateX(${x.value}px)`; pill.style.width = `${w.value}px`; return !(x.resting && w.resting); };
+    const pick = (b, instant) => {
+      buttons.forEach(o => { o.classList.toggle("is-on", o === b); o.setAttribute("aria-pressed", o === b); });
+      if (instant) { x.jump(b.offsetLeft); w.jump(b.offsetWidth); draw(0); } else { x.to(b.offsetLeft); w.to(b.offsetWidth); animate(draw); }
+      onPick && onPick(b);
+    };
+    buttons.forEach(b => b.addEventListener("pointerdown", () => pick(b)));   // moves on press
+    buttons.forEach(b => b.addEventListener("click", e => { if (e.detail === 0) pick(b); }));
+    requestAnimationFrame(() => pick(buttons.find(b => b.classList.contains("is-on")) || buttons[0], true));
+  }
+
+  const SITES = {
+    kiln: {
+      url: "kiln.studio",
+      html: () => `<div class="site ws-kiln">
+        <nav class="ws-nav"><b>Kiln</b><span>Shop</span><span>Studio</span><span>Visit</span><span class="ws-cart">Bag <i data-cart>0</i></span></nav>
+        <h3>Slow objects for <em>quick</em> mornings</h3>
+        <div class="ws-pots">${[
+          ["Cup No. 1", "€48", "#B4673F", "30% 30% 45% 45% / 20% 20% 60% 60%"],
+          ["Ash bowl", "€64", "#8E8A80", "10% 10% 50% 50% / 10% 10% 90% 90%"],
+          ["Celadon vase", "€120", "#9DB3A0", "40% 40% 30% 30% / 60% 60% 30% 30%"],
+          ["Night jug", "€86", "#2B2621", "35% 45% 40% 40% / 30% 40% 55% 55%"],
+          ["Sand plate", "€38", "#D2B48C", "50% / 18%"],
+          ["Rust beaker", "€52", "#9C4A2A", "12% 12% 20% 20% / 8% 8% 25% 25%"]
+        ].map(([n, p, c, r]) => `<button class="pot" type="button" style="--c:${c};--r:${r}" aria-label="Add ${n} to bag"><span class="pot__shape"></span><em>${n}</em><small>${p}</small></button>`).join("")}</div></div>`,
+      bind(el) {
+        const badge = $("[data-cart]", el);
+        const s = new Spring(1, { damping: .45, response: .3, precision: .001 });
+        let count = 0;
+        const draw = dt => { s.step(dt); badge.style.transform = `scale(${s.value})`; return !s.resting; };
+        $$(".pot", el).forEach(p => p.addEventListener("click", () => {
+          badge.textContent = ++count;
+          s.to(1, { velocity: 8 }); animate(draw);   // the badge takes a hit and settles
+        }));
+      }
+    },
+    north: {
+      url: "northlight.film",
+      html: () => {
+        const hues = [["#1d3b4a", "#e0814a"], ["#0f2430", "#3e6d7d"], ["#3b1f16", "#d69a5b"], ["#101820", "#7a8fa0"], ["#2a1b2e", "#c4624a"], ["#13262b", "#c9b37a"], ["#2b2a26", "#e2c38f"], ["#0b1b2b", "#ff6a2b"], ["#1e2a1c", "#a7b38a"], ["#27160f", "#f0a86b"]];
+        return `<div class="site ws-north">
+          <nav class="ws-nav"><b>Northlight</b><span>Films</span><span>Studio</span><span>Contact</span></nav>
+          <h3>Films about <em>the edge of light</em></h3>
+          <div class="ws-reel" data-reel><div class="ws-strip" data-strip>${hues.map(([a, b], i) =>
+            `<div class="ws-frame" data-sc="SC ${String(i + 1).padStart(2, "0")}" style="--g:linear-gradient(${120 + i * 17}deg, ${a} 10%, ${b} 120%)"></div>`).join("")}</div></div>
+          <div class="ws-scrub"><span data-timecode>00:00</span><div class="ws-track" data-track><span class="ws-fill" data-fill></span><i class="ws-head" data-head></i></div><span>01:42</span></div>
+        </div>`;
+      },
+      bind(el) {
+        const reel = $("[data-reel]", el), strip = $("[data-strip]", el), track = $("[data-track]", el);
+        const head = $("[data-head]", el), fill = $("[data-fill]", el), tc = $("[data-timecode]", el);
+        const x = new Spring(0, { damping: 1, response: .45, precision: .1 });
+        let min = 0, grabX = 0, dragging = false;
+        const measure = () => { min = Math.min(0, reel.clientWidth - strip.scrollWidth); };
+        const draw = dt => {
+          if (!dragging) x.step(dt);
+          strip.style.transform = `translate3d(${x.value}px,0,0)`;
+          const p = clamp(min ? x.value / min : 0, 0, 1);
+          head.style.left = fill.style.width = `${p * 100}%`;
+          const s = Math.round(p * 102);
+          tc.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+          return dragging || !x.resting;
+        };
+        // reel: drag 1:1, rubber-band past the ends, flick with projection
+        const band = v => v > 0 ? rubberband(v, reel.clientWidth) : v < min ? min + rubberband(v - min, reel.clientWidth) : v;
+        hDrag(reel, {
+          start() { measure(); grabX = x.value; x.jump(x.value); },
+          move(dx) { dragging = true; x.jump(band(grabX + dx)); animate(draw); },
+          end(v) { dragging = false; x.to(clamp(x.value + project(v), min, 0), { velocity: v, damping: 1, response: .5 }); animate(draw); }
+        });
+        // scrubber: press anywhere on the track, then drag
+        const fromTrack = e => { const r = track.getBoundingClientRect(); return clamp((e.clientX - r.left) / r.width, 0, 1); };
+        track.style.touchAction = "none";
+        track.addEventListener("pointerdown", e => {
+          measure(); track.setPointerCapture(e.pointerId); dragging = true;
+          x.jump(fromTrack(e) * min); animate(draw);
+          const mv = ev => { x.jump(fromTrack(ev) * min); };
+          const up = () => { dragging = false; track.removeEventListener("pointermove", mv); animate(draw); };
+          track.addEventListener("pointermove", mv);
+          track.addEventListener("pointerup", up, { once: true });
+          track.addEventListener("pointercancel", up, { once: true });
+        });
+        measure(); draw(0);
+      }
+    },
+    atlas: {
+      url: "atlas.type",
+      html: () => `<div class="site ws-atlas">
+        <nav class="ws-nav"><b>Atlas</b><span>Fonts</span><span>Trials</span><span>Licences</span></nav>
+        <p class="ws-specimen" data-spec contenteditable="true" spellcheck="false" style="--wght:800;--wdth:100%;--size:15cqw">Atlas Grotesk</p>
+        <div class="ws-axes">
+          <label>Weight <output data-o="wght">800</output><input type="range" min="100" max="900" value="800" data-axis="wght"></label>
+          <label>Width <output data-o="wdth">100</output><input type="range" min="62" max="125" value="100" data-axis="wdth"></label>
+          <label>Size <output data-o="size">15</output><input type="range" min="6" max="22" value="15" data-axis="size"></label>
+        </div>
+        <div class="ws-glyphs">${["A", "g", "R", "&", "?", "8", "ß", "✺"].map(g => `<span>${g}</span>`).join("")}</div>
+      </div>`,
+      bind(el) {
+        const spec = $("[data-spec]", el);
+        $$("[data-axis]", el).forEach(inp => inp.addEventListener("input", () => {
+          const ax = inp.dataset.axis, v = inp.value;
+          $(`[data-o="${ax}"]`, el).textContent = v;
+          spec.style.setProperty(`--${ax}`, ax === "wght" ? v : ax === "wdth" ? `${v}%` : `${v}cqw`);
+        }));
+        $$(".ws-glyphs span", el).forEach(g => g.addEventListener("click", () => { spec.textContent = g.textContent.repeat(6); }));
+      }
+    },
+    pause: {
+      url: "pause.radio",
+      html: () => {
+        const r = rng(7);
+        return `<div class="site ws-pause">
+          <nav class="ws-nav"><b>pause.</b><span>Shows</span><span>Schedule</span><span>Live</span></nav>
+          <div class="ws-player"><button class="ws-play" type="button" data-play aria-label="Play">▶</button>
+            <div><h3 data-ep>Night Shift 041</h3><p data-time>00:00 / 58:00 · Mira Ando</p></div></div>
+          <div class="ws-wave" data-wave>${Array.from({ length: 48 }, () => `<i style="--h:${(18 + r() * 82).toFixed(0)}%"></i>`).join("")}</div>
+          <ul class="ws-eps" data-eps>
+            <li class="is-on"><span>Night Shift 041</span><small>58:00</small></li>
+            <li><span>Paper Weather 012</span><small>41:30</small></li>
+            <li><span>Slow Hands 007</span><small>63:10</small></li>
+          </ul>
+        </div>`;
+      },
+      bind(el) {
+        const play = $("[data-play]", el), bars = $$("[data-wave] i", el), time = $("[data-time]", el), ep = $("[data-ep]", el);
+        const base = bars.map(b => parseFloat(b.style.getPropertyValue("--h")));
+        let playing = false, pos = 0, alive = true, t = 0;
+        const total = 58 * 60;
+        const draw = dt => {
+          if (!alive) return false;
+          if (playing) { pos = Math.min(1, pos + dt / 90); t += dt; }
+          const k = Math.floor(pos * bars.length);
+          bars.forEach((b, i) => {
+            b.classList.toggle("is-past", i < k);
+            b.style.setProperty("--h", `${playing && !reduced ? base[i] * (.7 + .3 * Math.abs(Math.sin(t * 6 + i * .7))) : base[i]}%`);
+          });
+          const s = Math.floor(pos * total);
+          time.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")} / 58:00 · Mira Ando`;
+          if (pos >= 1) playing = false;
+          play.textContent = playing ? "❚❚" : "▶"; play.setAttribute("aria-label", playing ? "Pause" : "Play");
+          return playing;
+        };
+        play.addEventListener("click", () => { playing = !playing; animate(draw); draw(0); });
+        $$("[data-eps] li", el).forEach(li => li.addEventListener("click", () => {
+          $$("[data-eps] li", el).forEach(o => o.classList.toggle("is-on", o === li));
+          ep.textContent = li.firstElementChild.textContent; pos = 0; playing = true; animate(draw);
+        }));
+        return () => { alive = false; };
+      }
+    },
+    halo: {
+      url: "halo.care",
+      html: () => `<div class="site ws-halo">
+        <nav class="ws-nav"><b>Halo</b><span>Care</span><span>Team</span><span>Book</span></nav>
+        <h3>Unhurried care,<br>booked in a minute.</h3>
+        <div class="ws-book">
+          <div class="ws-row" data-days>${["Mon 12", "Tue 13", "Wed 14", "Thu 15", "Fri 16"].map((d, i) => `<button class="ws-chip${i === 1 ? " is-on" : ""}" type="button">${d}</button>`).join("")}</div>
+          <div class="ws-row" data-times>${["09:00", "10:30", "13:00", "15:30"].map((d, i) => `<button class="ws-chip${i === 1 ? " is-on" : ""}" type="button">${d}</button>`).join("")}</div>
+          <button class="ws-cta" type="button" data-book>Book appointment</button>
+          <p class="ws-confirm" data-confirm role="status"></p>
+        </div>
+      </div>`,
+      bind(el) {
+        ["[data-days]", "[data-times]"].forEach(sel => {
+          const chips = $$(`${sel} .ws-chip`, el);
+          chips.forEach(c => c.addEventListener("click", () => chips.forEach(o => o.classList.toggle("is-on", o === c))));
+        });
+        $("[data-book]", el).addEventListener("click", () => {
+          const d = $("[data-days] .is-on", el).textContent, t = $("[data-times] .is-on", el).textContent;
+          $("[data-confirm]", el).textContent = `Booked for ${d} at ${t}. We'll send a reminder the day before.`;
+        });
+      }
+    },
+    oddly: {
+      url: "oddly.coffee",
+      html: () => `<div class="site ws-oddly">
+        <nav class="ws-nav"><b>oddly</b><span>Menu</span><span>Beans</span><span>Find us</span></nav>
+        <h3>Coffee,<br>a bit odd.</h3>
+        <div class="ws-seg" data-seg><span class="ws-seg__pill" data-pill></span><button type="button" class="is-on">Hot</button><button type="button">Iced</button></div>
+        <ul class="ws-menu" data-menu>${[["Flat white", "€3.40"], ["Long black", "€3.00"], ["Cortado", "€3.20"], ["Cardamom chai", "€3.60"]].map(([n, p]) => `<li><span>${n}</span><small>${p}</small></li>`).join("")}</ul>
+        <span class="ws-cup" data-cup aria-hidden="true"></span>
+      </div>`,
+      bind(el) {
+        const menus = {
+          Hot: [["Flat white", "€3.40"], ["Long black", "€3.00"], ["Cortado", "€3.20"], ["Cardamom chai", "€3.60"]],
+          Iced: [["Iced oat latte", "€4.00"], ["Cold brew", "€3.80"], ["Espresso tonic", "€4.40"], ["Iced chai", "€4.00"]]
+        };
+        const menu = $("[data-menu]", el), cup = $("[data-cup]", el);
+        const fill = mode => {
+          menu.innerHTML = menus[mode].map(([n, p]) => `<li><span>${n}</span><small>${p}</small></li>`).join("");
+          cup.style.setProperty("--fill", mode === "Hot" ? "#6B3A20" : "#B98157");
+        };
+        fill("Hot");
+        slidingPill($("[data-seg]", el), $("[data-pill]", el), $$("[data-seg] button", el), b => fill(b.textContent));
+      }
+    }
+  };
+
+  /* ============================================================ archive data */
+  // Example pieces until the studio's real archive images arrive.
   const ARCHIVE = [
-    ["Blot poster 01", C.paper, C.wet, C.ink, "B1", "splat"],
-    ["Riso tests", C.pink, C.blue, C.ink, "R", "stripes"],
-    ["Stamp set", C.yellow, C.wet, C.ink, "St", "rings"],
-    ["Night signage", C.ink, C.yellow, C.wet, "Ns", "drips"],
-    ["Ex libris", C.paper, C.green, C.blue, "Ex", "splat"],
-    ["Menu cards", C.blue, C.paper, C.wet, "Mc", "stripes"],
-    ["Blot poster 02", C.wet, C.ink, C.paper, "B2", "splat"],
-    ["Tote run", C.paper, C.ink, C.pink, "Tr", "rings"],
-    ["Loop studies", C.ink, C.pink, C.blue, "Ls", "drips"],
-    ["Sticker sheet", C.green, C.yellow, C.ink, "Ss", "splat"]
+    { kind: "Website", site: "kiln", title: "Kiln Ceramics", year: 2026, tags: ["E-commerce", "Art direction", "Build"],
+      text: "A shop for a two-person ceramics studio. Warm stock, a serif drawn for slow reading, and one gesture: pots lift when you hover and the bag answers when you add one.",
+      tryIt: "Add a few pots to the bag." },
+    { kind: "Poster", title: "Blot Poster 01", year: 2025, tags: ["Risograph", "A2", "Edition of 80"],
+      cover: { bg: C.paper, a: C.ink, b: C.orange, glyph: "B1", style: "splat" },
+      text: "The first of a poster series made by dropping ink from a height onto wet stock, scanned and pulled in two Riso drums." },
+    { kind: "Website", site: "north", title: "Northlight Films", year: 2025, tags: ["Portfolio", "Motion", "Build"],
+      text: "A dark, quiet site for a documentary studio. The reel is the navigation: drag it, flick it or scrub the timeline, and it keeps your momentum.",
+      tryIt: "Flick the reel, or drag along the timeline." },
+    { kind: "Identity", title: "Oddly Stamp Set", year: 2025, tags: ["Identity", "Rubber stamp", "Packaging"],
+      cover: { bg: C.orange, a: C.ink, b: C.paper, glyph: "Os", style: "rings" },
+      text: "A ring stain became the mark. Three rubber stamps let the café brand cups, bags and receipts by hand." },
+    { kind: "Website", site: "atlas", title: "Atlas Type Foundry", year: 2026, tags: ["Type tester", "Variable fonts", "Build"],
+      text: "A foundry site where the type tester is the homepage. Every axis is a slider, every word is editable.",
+      tryIt: "Move the sliders, type your own words, or tap a glyph." },
+    { kind: "Zine", title: "Paper Weather 03", year: 2024, tags: ["Risograph", "24 pp", "Misregistered"],
+      cover: { bg: C.cream, a: C.blue, b: C.orange, glyph: "Pw", style: "stripes" },
+      text: "A quarterly of forecasts that never happened. Two drums, misregistered on purpose, so every copy has its own weather." },
+    { kind: "Website", site: "pause", title: "Pause Radio", year: 2025, tags: ["Audio", "Live", "Build"],
+      text: "An independent station that wanted listening to feel slow. Big play button, a waveform that fills as the show plays, nothing else in the way.",
+      tryIt: "Press play, then pick another show." },
+    { kind: "Titles", title: "Hollow Hour", year: 2024, tags: ["Film titles", "Ink on paper", "3D"],
+      cover: { bg: C.ink, a: C.orange, b: C.paper, glyph: "Hh", style: "drips" },
+      text: "Opening titles painted in ink, scanned, then rebuilt in 3D so the letters could run and pool on screen." },
+    { kind: "Website", site: "halo", title: "Halo Clinic", year: 2026, tags: ["Healthcare", "Booking", "Accessibility"],
+      text: "A calm booking flow for a small clinic: two choices and one button, written in plain words, readable at any text size.",
+      tryIt: "Pick a day and a time, then book." },
+    { kind: "Website", site: "oddly", title: "Oddly Coffee", year: 2025, tags: ["Hospitality", "Menu", "Build"],
+      text: "The café's menu site. A hot and iced switch slides on a spring and the whole menu changes with it.",
+      tryIt: "Switch between hot and iced." }
   ];
+
+  /* ============================================================ archive wheel
+     1:1 drag, flick projection, snap to the nearest piece, velocity handed to the spring.
+     Grab it mid-spin to stop it. Tap the front piece to open it. */
   const ring = $("#ring"), wheel = $("#wheel");
-  const archiveName = $("#archiveName"), archiveIndex = $("#archiveIndex");
-  ring.innerHTML = ARCHIVE.map(([label, bg, a, b, glyph, style], i) =>
-    `<figure class="panel" data-i="${i}">${cover(100 + i, { bg, a, b, glyph, label, style })}<figcaption>${String(i + 1).padStart(2, "0")} ${label}</figcaption></figure>`).join("");
+  const archiveName = $("#archiveName"), archiveIndex = $("#archiveIndex"), archiveKind = $("#archiveKind");
+  $("#archiveTotal").textContent = ARCHIVE.length;
+  ring.innerHTML = ARCHIVE.map((it, i) => `<figure class="panel" data-i="${i}">${
+    it.site ? browser(SITES[it.site].url, SITES[it.site].html()) : cover(200 + i, { ...it.cover, label: it.title }, "w")
+  }<figcaption>${it.kind}</figcaption></figure>`).join("");
+  // thumbnails are pictures, not controls
+  $$(".panel button, .panel input, .panel [contenteditable]", ring).forEach(n => { n.tabIndex = -1; n.removeAttribute("contenteditable"); });
   const panels = $$(".panel", ring);
   const N = panels.length, STEP = 360 / N;
   let radius = 0;
-  function layoutWheel() {
-    radius = ring.offsetWidth / (2 * Math.tan(Math.PI / N)) * 1.18;
-    panels.forEach((p, i) => p.style.transform = `rotateY(${i * STEP}deg) translateZ(${radius}px)`);
-    renderWheel();
-  }
   const rot = new Spring(0, { damping: 1, response: .4, precision: .02 });
   const degPerPx = () => 180 / (Math.PI * radius);
   const wh = { down: false, dragging: false, id: null, x0: 0, y0: 0, rot0: 0, front: -1 };
+  const archiveDragging = () => wh.dragging;
   const wtrack = velocityTracker();
 
+  function layoutWheel() {
+    radius = ring.offsetWidth / (2 * Math.tan(Math.PI / N)) * 1.2;
+    panels.forEach((p, i) => p.style.transform = `rotateY(${i * STEP}deg) translateZ(${radius}px)`);
+    renderWheel();
+  }
   function renderWheel() {
     ring.style.transform = `translateZ(${-radius}px) rotateX(-7deg) rotateY(${rot.value}deg)`;
     const front = ((Math.round(-rot.value / STEP) % N) + N) % N;
     if (front !== wh.front) {
       wh.front = front;
-      archiveName.textContent = ARCHIVE[front][0];
+      archiveName.textContent = ARCHIVE[front].title;
+      archiveKind.textContent = ARCHIVE[front].kind;
       archiveIndex.textContent = String(front + 1).padStart(2, "0");
       panels.forEach((p, i) => {
         const d = Math.min(Math.abs(i - front), N - Math.abs(i - front));
-        p.style.filter = `brightness(${1 - d * .14})`;
+        p.style.filter = d ? `brightness(${1 - d * .13})` : "";
+        p.classList.toggle("is-front", !d);
       });
     }
   }
@@ -511,8 +860,8 @@
   addEventListener("resize", layoutWheel);
 
   wheel.addEventListener("pointerdown", e => {
-    Object.assign(wh, { down: true, dragging: false, id: e.pointerId, x0: e.clientX, y0: e.clientY, rot0: rot.value });
-    rot.target = rot.value; rot.velocity = 0;        // grab stops it exactly where it is
+    Object.assign(wh, { down: true, dragging: false, id: e.pointerId, x0: e.clientX, y0: e.clientY, rot0: rot.value, moving: !rot.resting });
+    rot.target = rot.value; rot.velocity = 0;        // a grab stops it exactly where it is
     wtrack.reset(); wtrack.add(e.clientX, 0);
   });
   wheel.addEventListener("pointermove", e => {
@@ -520,10 +869,10 @@
     const dx = e.clientX - wh.x0, dy = e.clientY - wh.y0;
     if (!wh.dragging) {
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-      if (Math.abs(dy) > Math.abs(dx)) { wh.down = false; return; }   // vertical intent: let the page scroll
+      if (Math.abs(dy) > Math.abs(dx)) { wh.down = false; goTo(snap(rot.value)); return; }   // vertical: let the page scroll
       wh.dragging = true; wheel.classList.add("is-dragging");
       wheel.setPointerCapture(e.pointerId);
-      wh.x0 = e.clientX; wh.rot0 = rot.value;        // start tracking from here, no jump
+      wh.x0 = e.clientX; wh.rot0 = rot.value;
     }
     wtrack.add(e.clientX, 0);
     rot.jump(wh.rot0 + (e.clientX - wh.x0) * degPerPx());
@@ -534,25 +883,23 @@
     wh.down = false;
     if (wh.dragging) {
       wh.dragging = false; wheel.classList.remove("is-dragging");
-      const v = wtrack.get().x * degPerPx();         // deg/s
+      const v = wtrack.get().x * degPerPx();
       goTo(snap(rot.value + project(v)), v);         // land where the flick is going
-    } else {
-      // a tap on a side panel brings it to the front, the shortest way round
-      const panel = e.target.closest(".panel");
-      if (panel) {
-        const i = +panel.dataset.i;
-        let t = -i * STEP;
-        t += Math.round((rot.value - t) / 360) * 360;
-        goTo(t);
-      } else goTo(snap(rot.value));
+      return;
     }
+    const panel = e.target.closest(".panel");
+    if (!panel || e.type === "pointercancel") { goTo(snap(rot.value)); return; }
+    const i = +panel.dataset.i;
+    if (i === wh.front && !wh.moving) { goTo(snap(rot.value)); openSheet(i, panel); return; }   // tap the front piece: open it
+    let t = -i * STEP;                                // tap a side piece: bring it forward the short way round
+    t += Math.round((rot.value - t) / 360) * 360;
+    goTo(t);
   }
   wheel.addEventListener("pointerup", endWheel);
   wheel.addEventListener("pointercancel", endWheel);
 
-  // Trackpad side-swipes turn it too, then settle on a piece.
   let wheelIdle;
-  wheel.addEventListener("wheel", e => {
+  wheel.addEventListener("wheel", e => {             // trackpad side-swipes turn it too
     if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
     e.preventDefault();
     rot.jump(rot.value - e.deltaX * degPerPx());
@@ -561,16 +908,141 @@
     wheelIdle = setTimeout(() => goTo(snap(rot.value)), 120);
   }, { passive: false });
 
-  // Buttons and keys step from the current target, so repeated presses stack without waiting.
-  const stepBy = n => goTo(snap(rot.target) - n * STEP);
+  const stepBy = n => goTo(snap(rot.target) - n * STEP);   // stacks with repeated presses
   $("#prev").addEventListener("click", () => stepBy(-1));
   $("#next").addEventListener("click", () => stepBy(1));
+  $("#openFront").addEventListener("click", () => openSheet(wh.front, panels[wh.front]));
   wheel.addEventListener("keydown", e => {
     if (e.key === "ArrowLeft") { e.preventDefault(); stepBy(-1); }
     if (e.key === "ArrowRight") { e.preventDefault(); stepBy(1); }
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSheet(wh.front, panels[wh.front]); }
   });
 
-  /* ======================================================== services
+  /* ============================================================ detail sheet
+     Opens out of the piece you tapped (anchored origin) and goes back into it when closed.
+     Drag the handle down to dismiss: 1:1, rubber-banded upward, velocity-projected on release. */
+  const sheet = $("#sheet"), scrim = $("#scrim"), sheetBody = $("#sheetBody"), handle = $("#sheetHandle");
+  const open = new Spring(0, { damping: 1, response: .5, precision: .003 });
+  const dragY = new Spring(0, { damping: 1, response: .35, precision: .2 });
+  let flip = null, cleanup = null, opener = null, closing = false, sheetDrag = false;
+
+  function renderSheet() {
+    const t = open.value, H = sheet.offsetHeight || innerHeight;
+    const f = flip || { dx: 0, dy: 0, sx: 1, sy: 1 };
+    sheet.style.transform = `translate3d(${f.dx * (1 - t)}px, ${f.dy * (1 - t) + dragY.value}px, 0) scale(${lerp(f.sx, 1, t)}, ${lerp(f.sy, 1, t)})`;
+    sheet.style.borderRadius = `${lerp(10, 24, t)}px ${lerp(10, 24, t)}px ${lerp(10, 0, t)}px ${lerp(10, 0, t)}px`;
+    sheetBody.style.opacity = clamp((t - .35) / .65, 0, 1);
+    $(".sheet__head", sheet).style.opacity = clamp((t - .25) / .6, 0, 1);
+    scrim.style.opacity = t * (1 - clamp(dragY.value / H, 0, 1));
+  }
+  function sheetTask(dt) {
+    open.step(dt);
+    if (!sheetDrag) dragY.step(dt);
+    document.body.classList.toggle("sheet-covered", !closing && !sheetDrag && open.value > .995 && dragY.value < 1);
+    renderSheet();
+    const H = sheet.offsetHeight;
+    const gone = closing && ((open.target === 0 && open.value < .015) || (dragY.target > H && dragY.value >= H));
+    if (gone) { hideSheet(); return false; }
+    return sheetDrag || !(open.resting && dragY.resting);
+  }
+
+  function detailHTML(it, i) {
+    const aside = `<aside class="detail__aside">
+      <p>${it.text}</p>
+      <div class="detail__tags label">${it.tags.map(t => `<span>${t}</span>`).join("")}</div>
+      ${it.tryIt ? `<p class="detail__try"><b>Try it.</b> ${it.tryIt}</p>` : ""}
+    </aside>`;
+    const main = it.site ? `<div class="detail__main">${browser(SITES[it.site].url, SITES[it.site].html())}</div>`
+                         : `<div class="detail__cover">${cover(200 + i, { ...it.cover, label: it.title }, "s")}</div>`;
+    return `<div class="detail">${main}${aside}</div>`;
+  }
+
+  function openSheet(i, fromEl) {
+    if (!sheet.hidden && !closing) return;
+    const it = ARCHIVE[i];
+    opener = document.activeElement;
+    closing = false;
+    $("#sheetMeta").textContent = `${it.kind} · ${it.year}`;
+    $("#sheetTitle").textContent = it.title;
+    sheetBody.innerHTML = detailHTML(it, i);
+    sheetBody.scrollTop = 0;
+    cleanup = it.site && SITES[it.site].bind ? SITES[it.site].bind($(".site", sheetBody)) : null;
+    sheet.hidden = scrim.hidden = false;
+    root.classList.add("is-locked");
+    sheet.style.transform = "none";
+    const to = sheet.getBoundingClientRect(), from = fromEl.getBoundingClientRect();
+    flip = { dx: from.left - to.left, dy: from.top - to.top, sx: from.width / to.width, sy: from.height / to.height };
+    dragY.jump(0); open.jump(0); renderSheet();
+    open.to(1, { damping: 1, response: .5 });
+    animate(sheetTask);
+    $("#sheetClose").focus({ preventScroll: true });
+  }
+  function closeSheet() {            // back along the path it came, into its piece
+    if (sheet.hidden) return;
+    closing = true;
+    document.body.classList.remove("sheet-covered");
+    const fromEl = panels[wh.front];
+    if (fromEl) {
+      const cur = sheet.style.transform; sheet.style.transform = "none";
+      const to = sheet.getBoundingClientRect(), from = fromEl.getBoundingClientRect();
+      sheet.style.transform = cur;
+      flip = { dx: from.left - to.left, dy: from.top - to.top, sx: from.width / to.width, sy: from.height / to.height };
+    }
+    open.to(0, { damping: 1, response: .45 });
+    animate(sheetTask);
+  }
+  function hideSheet() {
+    document.body.classList.remove("sheet-covered");
+    sheet.hidden = scrim.hidden = true;
+    root.classList.remove("is-locked");
+    cleanup && cleanup(); cleanup = null;
+    sheetBody.innerHTML = "";
+    closing = false;
+    open.jump(0); dragY.jump(0);
+    (opener && opener.focus ? opener : $("#openFront")).focus({ preventScroll: true });
+  }
+  $("#sheetClose").addEventListener("click", closeSheet);
+  scrim.addEventListener("click", closeSheet);
+  addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });
+
+  // drag-to-dismiss on the handle
+  (() => {
+    const tr = velocityTracker();
+    let s = null;
+    handle.addEventListener("pointerdown", e => {
+      if (e.target.closest("button")) return;
+      handle.setPointerCapture(e.pointerId);
+      s = { id: e.pointerId, y: e.clientY, from: dragY.value, on: false };
+      dragY.velocity = 0; tr.reset(); tr.add(0, e.clientY);
+    });
+    handle.addEventListener("pointermove", e => {
+      if (!s || e.pointerId !== s.id) return;
+      const dy = e.clientY - s.y;
+      if (!s.on && Math.abs(dy) < 6) return;
+      s.on = sheetDrag = true;
+      tr.add(0, e.clientY);
+      const raw = s.from + dy;
+      dragY.jump(raw < 0 ? rubberband(raw, sheet.offsetHeight) : raw);   // resist upward, follow downward
+      animate(sheetTask);
+    });
+    const up = e => {
+      if (!s || e.pointerId !== s.id) return;
+      const was = s.on; s = null; sheetDrag = false;
+      if (!was) return;
+      const v = tr.get().y, H = sheet.offsetHeight;
+      if (dragY.value + project(v) > H * .35) {       // decide by where it's going, not where it is
+        closing = true;
+        dragY.to(H + 40, { velocity: v, damping: 1, response: .35 });
+      } else {
+        dragY.to(0, { velocity: v, damping: .8, response: .35 });
+      }
+      animate(sheetTask);
+    };
+    handle.addEventListener("pointerup", up);
+    handle.addEventListener("pointercancel", up);
+  })();
+
+  /* ============================================================ services
      Ink floods in from the point you enter and drains out the way you leave. */
   $$(".cell").forEach(c => {
     const at = e => {
@@ -583,7 +1055,7 @@
     c.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse") { at(e); c.classList.toggle("is-wet"); } });
   });
 
-  /* ======================================================== contact */
+  /* ============================================================ contact */
   const mail = $("#mail"), mailState = $("#mailState");
   let mailTimer;
   mail.addEventListener("click", () => {
@@ -601,7 +1073,7 @@
     catch (_) { fallback(); }
   });
 
-  /* ======================================================== footer
+  /* ============================================================ footer
      Letters lean up toward the pointer, each on its own spring. */
   const foot = $("#foot");
   const letters = $$("#footWord span:not(.sp)");
@@ -610,6 +1082,7 @@
     lift.forEach((s, i) => {
       s.step(dt);
       letters[i].style.transform = `translate3d(0, ${-s.value}px, 0) scaleY(${1 + s.value / 600})`;
+      letters[i].classList.toggle("is-up", s.target > 4);
     });
     return lift.some(s => !s.resting);
   }
@@ -624,15 +1097,15 @@
   });
   foot.addEventListener("pointerleave", () => { lift.forEach(s => s.to(0)); animate(footTask); });
 
-  /* ======================================================== navigation
-     A pill slides between items on a critically damped spring; it moves on press,
-     not after the scroll lands. The capsule darkens over ink-black chapters. */
+  /* ============================================================ navigation
+     A pill slides between items on a critically damped spring and moves on press.
+     The capsule darkens over ink-black chapters. */
   const bar = $("#bar");
   const nav = $("#nav");
   const navLinks = $$("a", nav);
   const navPill = $("#navPill");
   const sections = navLinks.map(a => $(a.getAttribute("href")));
-  const darkZones = [$(".story"), $(".archive")];
+  const darkZones = [$(".story"), $(".archive"), $(".ticker"), $("#foot")];
   const pillX = new Spring(0, { damping: 1, response: .35, precision: .1 });
   const pillW = new Spring(0, { damping: 1, response: .35, precision: .1 });
   let active = -1, navLock = -1, navLockTimer;
@@ -641,19 +1114,19 @@
     pillX.step(dt); pillW.step(dt);
     navPill.style.transform = `translate3d(${pillX.value}px, 0, 0)`;
     navPill.style.width = `${pillW.value}px`;
-    navPill.style.opacity = pillW.value > 1 ? 1 : 0;
     return !(pillX.resting && pillW.resting);
   }
   function setActive(i, instant) {
-    if (i === active) return;
+    if (i === active && !instant) return;
     active = i;
     navLinks.forEach((a, j) => { a.classList.toggle("is-active", j === i); a.toggleAttribute("aria-current", j === i); });
     const l = navLinks[i];
-    if (!l) { pillW.to(0); animate(pillTask); return; }
+    if (!l) return;
     if (instant || pillW.value < 1) { pillX.jump(l.offsetLeft); pillW.jump(l.offsetWidth); }
     else { pillX.to(l.offsetLeft); pillW.to(l.offsetWidth); }
     animate(pillTask);
   }
+  const smooth = reduced ? "auto" : "smooth";
   navLinks.forEach((a, i) => {
     a.addEventListener("pointerdown", () => setActive(i));   // feedback on press
     a.addEventListener("click", e => {
@@ -661,28 +1134,25 @@
       setActive(i);
       navLock = i; clearTimeout(navLockTimer);
       navLockTimer = setTimeout(() => { navLock = -1; onScroll(); }, 1200);
-      sections[i].scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+      sections[i].scrollIntoView({ behavior: smooth });
     });
   });
-  $(".logo").addEventListener("click", e => { e.preventDefault(); scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }); });
-  $$('.foot a[href="#top"]').forEach(a => a.addEventListener("click", e => { e.preventDefault(); scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }); }));
+  $(".logo").addEventListener("click", e => { e.preventDefault(); scrollTo({ top: 0, behavior: smooth }); });
+  $$('.foot a[href="#top"]').forEach(a => a.addEventListener("click", e => { e.preventDefault(); scrollTo({ top: 0, behavior: smooth }); }));
   addEventListener("scrollend", () => { if (navLock !== -1) { navLock = -1; onScroll(); } });
 
-  /* ======================================================== scroll */
+  /* ============================================================ scroll */
   let ticking = false;
   function onScroll() {
     updateStory();
-    // nav state
     if (navLock === -1) {
       let a = -1;
       sections.forEach((s, i) => { if (s && s.getBoundingClientRect().top < innerHeight * .4) a = i; });
       setActive(Math.max(0, a));
     }
-    // capsule tone
     const y = bar.getBoundingClientRect().bottom - 20;
     const dark = darkZones.some(z => { const r = z.getBoundingClientRect(); return r.top <= y && r.bottom >= y; });
     bar.dataset.tone = dark ? "dark" : "light";
-    // scroll velocity feeds the ticker
     const now = performance.now(), dt = Math.max(16, now - lastScrollT) / 1000;
     tickVel.to(clamp((scrollY - lastScrollY) / dt, -3000, 3000));
     lastScrollY = scrollY; lastScrollT = now;
@@ -691,7 +1161,7 @@
     ticking = false;
   }
   addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
-  addEventListener("resize", () => { const i = active; active = -1; setActive(i, true); onScroll(); });
-  document.fonts && document.fonts.ready.then(() => { const i = active; active = -1; setActive(i, true); layoutWheel(); });
+  addEventListener("resize", () => { setActive(active, true); onScroll(); });
+  document.fonts && document.fonts.ready.then(() => { setActive(active, true); layoutWheel(); });
   onScroll();
 })();
