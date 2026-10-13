@@ -25,15 +25,24 @@ floating preview), and Project Yuli (paper stock, one loud red, playful mascot, 
 
 ## Interactions
 
-1. Intro: a drop falls and floods the screen red.
-2. Hero: move to draw with ink, click to drop a splash (metaball canvas with a darker dried rim);
-   Blot's eyes follow the cursor and it splashes when poked.
-3. Process: sticky dark chapter; five discs open up as you scroll and a red drop falls through them.
-4. Archive: draggable 3D ring of covers (arrow keys work too).
-5. Services: red ink floods each cell from where the pointer enters.
-6. Footer: letters drip when hovered.
+Motion follows Apple's fluid-interface principles (WWDC "Designing Fluid Interfaces"): a small
+spring engine in `js/main.js` (damping ratio + response), velocity handoff on release,
+momentum projection for flicks, rubber-banding, and feedback on pointer-down.
 
-All motion respects `prefers-reduced-motion`.
+1. Header: a floating glass capsule; the active-section pill slides on a spring and the glass
+   turns dark over the black chapters.
+2. Hero: draw with the pointer, press to drop ink (splashes inherit the stroke's velocity).
+   Blot can be grabbed, dragged on a rubber-band leash and thrown; a hard throw splashes where
+   the momentum would land, then Blot springs home carrying your release velocity.
+3. Ticker: drifts slowly and picks up the speed and direction of your scroll.
+4. Process: scroll-linked; discs open and a red drop falls through five passes. Lines enter
+   from below going forward and from above going back.
+5. Archive: 1:1 drag, flick projection, snap to a piece, tap a side piece to bring it forward,
+   arrow keys, buttons and trackpad side-swipes. Grab it mid-spin to stop it.
+6. Services: ink floods in from where the pointer enters and drains out where it leaves.
+7. Contact: tap the address to copy it. Footer letters lean toward the pointer.
+
+`prefers-reduced-motion`, `prefers-reduced-transparency` and `prefers-contrast` are all handled.
 
 ## Placeholder content
 

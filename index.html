@@ -12,27 +12,22 @@
 </head>
 <body>
 
-<!-- Intro: one ink drop falls and floods the page, then clears -->
-<div class="intro" aria-hidden="true">
-  <div class="intro__drop"></div>
-  <div class="intro__flood"></div>
-</div>
-
-<!-- Custom cursor (pointer devices only) -->
-<div class="cursor" aria-hidden="true"><span class="cursor__label">View</span></div>
-
-<header class="bar">
-  <a class="logo" href="#top" aria-label="Wet Ink Studio, back to top">
-    <svg class="blot blot--sm" viewBox="0 0 60 72" aria-hidden="true"><use href="#blot"/></svg>
-    <span>Wet Ink<sup>®</sup></span>
-  </a>
-  <nav class="nav" aria-label="Main">
-    <a href="#studio"><i>01/</i>Studio</a>
-    <a href="#process"><i>02/</i>Process</a>
-    <a href="#archive"><i>03/</i>Archive</a>
-    <a href="#contact"><i>04/</i>Contact</a>
-  </nav>
-  <p class="drying" aria-live="off"><span class="drying__dot"></span>Ink drying <b id="dryTimer">00:00</b></p>
+<!-- Floating glass capsule: content scrolls underneath it -->
+<header class="bar" id="bar" data-tone="light">
+  <div class="bar__glass">
+    <a class="logo" href="#top" aria-label="Wet Ink Studio, back to top">
+      <svg class="blot--sm" viewBox="0 0 60 72" aria-hidden="true"><use href="#blot"/></svg>
+      <span class="logo__word">Wet Ink<sup>®</sup></span>
+    </a>
+    <nav class="nav" id="nav" aria-label="Main">
+      <span class="nav__pill" id="navPill" aria-hidden="true"></span>
+      <a href="#studio">Studio</a>
+      <a href="#process">Process</a>
+      <a href="#archive">Archive</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <p class="drying" aria-hidden="true"><span class="drying__dot"></span><b id="dryTimer">00:00</b></p>
+  </div>
 </header>
 
 <main id="top">
@@ -48,7 +43,7 @@
     <h1 class="hero__title" aria-label="Wet Ink Studio">
       <span class="line"><span class="rise">Wet</span></span>
       <span class="line line--ink">
-        <span class="rise">I<span class="tittle-host">ı<button class="mascot" id="mascot" type="button" aria-label="Poke Blot, the studio mascot">
+        <span class="rise">I<span class="tittle-host">ı<button class="mascot" id="mascot" type="button" aria-label="Blot, the studio mascot. Drag it around or tap it.">
           <svg class="blot" viewBox="0 0 60 72" aria-hidden="true">
             <use href="#blot"/>
             <g class="eyes">
@@ -65,26 +60,26 @@
 
     <div class="hero__foot">
       <p class="hero__lede">An independent studio making identities, printed matter and moving image. <em>We make marks that stay</em>, then keep them a little wet so they can still move.</p>
-      <p class="hero__hint label">Move to draw · Click to drop ink</p>
+      <p class="hero__hint label" id="heroHint">Draw with the pointer · Press to drop ink · Throw Blot</p>
     </div>
     <span class="reg reg--bl" aria-hidden="true"></span>
     <span class="reg reg--br" aria-hidden="true"></span>
   </section>
 
-  <!-- TICKER -->
+  <!-- TICKER: drifts on its own, picks up the speed and direction of your scroll -->
   <div class="ticker" aria-hidden="true">
-    <div class="ticker__track">
+    <div class="ticker__track" id="ticker">
       <span>“Work is wet”</span><b>✺</b><span>Identity</span><b>✺</b><span>Risograph</span><b>✺</b><span>Type</span><b>✺</b><span>Motion</span><b>✺</b><span>Books</span><b>✺</b><span>“Never quite dry”</span><b>✺</b>
       <span>“Work is wet”</span><b>✺</b><span>Identity</span><b>✺</b><span>Risograph</span><b>✺</b><span>Type</span><b>✺</b><span>Motion</span><b>✺</b><span>Books</span><b>✺</b><span>“Never quite dry”</span><b>✺</b>
     </div>
   </div>
 
-  <!-- DARK CHAPTER: sticky scroll story -->
+  <!-- DARK CHAPTER: scroll-linked process -->
   <section class="story" id="process" aria-label="How we work">
     <div class="story__stage">
       <p class="story__side label" aria-hidden="true">Wet Ink — process — five passes</p>
       <div class="story__object" id="stack" aria-hidden="true">
-        <div class="drop3d"></div>
+        <div class="drop3d" id="drop3d"></div>
       </div>
       <ol class="story__steps" id="steps">
         <li><span>01</span>Listen</li>
@@ -107,10 +102,15 @@
   <section class="archive" id="archive" aria-label="Archive">
     <div class="section-head section-head--light">
       <h2 class="h2">The <em class="serif">archive</em></h2>
-      <p class="label">Drag to spin · <span id="archiveName">—</span></p>
+      <p class="label">Drag or flick to spin</p>
     </div>
-    <div class="wheel" id="wheel" tabindex="0" aria-label="Archive carousel. Use left and right arrow keys to spin.">
+    <div class="wheel" id="wheel" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Archive. Use the left and right arrow keys to turn.">
       <div class="wheel__ring" id="ring"></div>
+    </div>
+    <div class="wheel__controls">
+      <button class="round" id="prev" type="button" aria-label="Previous piece">←</button>
+      <p class="wheel__now" aria-live="polite"><b id="archiveIndex">01</b><span>/10</span> <span id="archiveName">—</span></p>
+      <button class="round" id="next" type="button" aria-label="Next piece">→</button>
     </div>
   </section>
 
@@ -118,7 +118,7 @@
   <section class="services" aria-label="Services">
     <div class="section-head">
       <h2 class="h2">What we <em class="serif">ink</em></h2>
-      <p class="label muted">Hover a cell to flood it</p>
+      <p class="label muted">Ink floods in from where you enter</p>
     </div>
     <div class="cells">
       <article class="cell">
@@ -150,12 +150,13 @@
 
   <!-- CONTACT -->
   <section class="contact" id="contact" aria-label="Contact">
-    <span class="contact__line contact__mail">hello@wetink.studio</span>
+    <button class="contact__line contact__mail" id="mail" type="button" aria-describedby="mailState">hello@wetink.studio</button>
+    <span class="contact__state label" id="mailState" role="status">Tap to copy</span>
     <a class="contact__line contact__line--ig" href="https://www.instagram.com/wetink.studio/" target="_blank" rel="noopener">@wetink.studio</a>
   </section>
 </main>
 
-<footer class="foot">
+<footer class="foot" id="foot">
   <div class="foot__meta label">
     <span>Wet Ink Studio © 2026</span>
     <span>Printed in Wet Red 485 U on 120 gsm uncoated</span>
@@ -166,7 +167,7 @@
   </p>
 </footer>
 
-<!-- Shared symbol: the ink drop, used as logo, mascot and cursor -->
+<!-- Shared symbol: the ink drop, used as logo, mascot and process drop -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="blot" viewBox="0 0 60 72">
     <path d="M30 2C30 2 6 30 6 46a24 24 0 0 0 48 0C54 30 30 2 30 2Z" fill="currentColor"/>
