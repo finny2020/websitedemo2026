@@ -9,6 +9,11 @@
 - **Sharp:** border-radius 0 everywhere, 1px hairlines.
 - **Texture/effects:** film grain, laid-paper texture on white, generated guilloche (banknote engraving) rosettes and bands,
   chrome four-point sparkles, chrome text whose sheen follows the pointer, iridescent WebGL form in the hero.
+- **3D, not flat:** the blob, star, hook, glints, Blot and the "Wet ınk" / "Archive" / footer WET INK type are real 3D in
+  js/scene3d.js (Three.js r170, vendored in vendor/; marching-cubes blob; extruded bevelled type from Bodoni Moda outlines in
+  assets/fonts/*.typeface.json; MeshPhysicalMaterial chrome with iridescence + clearcoat; PMREM studio environment with coloured
+  softboxes). The HTML text stays underneath for layout and accessibility (`.has3d` hides its paint). Needs http(s), not file://.
+  To add letters to the 3D type, regenerate the typeface JSON (fontTools script in the commit history).
 - The hero word is "Wet ink": "ink" is set with a dotless ı and Blot (chrome) sits as its dot.
 
 ## Motion rules (Apple fluid-interface principles)

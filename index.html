@@ -34,8 +34,6 @@
   <!-- HERO: an iridescent form over a turning guilloche, with chrome sparkles -->
   <section class="hero" id="stage" aria-label="Wet Ink Studio">
     <svg class="rosette" id="rosette" viewBox="-500 -500 1000 1000" aria-hidden="true"></svg>
-    <canvas class="blob" id="blob" aria-hidden="true"></canvas>
-    <svg class="star" id="star" viewBox="-100 -100 200 200" aria-hidden="true"><use href="#starShape"/></svg>
 
     <div class="hero__bottom">
       <!-- "ink" is set with a dotless ı: Blot sits where the dot would be -->
@@ -130,5 +128,7 @@
 </svg>
 
 <script src="js/main.js"></script>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script type="module" src="js/scene3d.js"></script>
 </body>
 </html>

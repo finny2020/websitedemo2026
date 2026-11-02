@@ -1,6 +1,6 @@
 # Wet Ink Studio — website
 
-Static site, no build step. Open `index.html` or serve the folder (`npx serve .`).
+Static site, no build step. Serve the folder over http (`npx serve .`); the 3D layer is an ES module and does not load from `file://`.
 
 ```
 index.html      markup
@@ -13,7 +13,10 @@ js/main.js      interactions (ink canvas, mascot, scroll story, work list, archi
 Minimal luxury tech with a 19th-century engraved-paper feeling. Serif only (Bodoni Moda), sharp corners, black, white
 laid paper, fluorescent green and fluorescent pink, with chrome and iridescent light.
 
-1. **Hero:** an iridescent WebGL form (raymarched metaballs with a rainbow thin-film rim and grain) floating over a slowly
+0. **3D layer (`js/scene3d.js`):** Three.js (vendored in `vendor/`) renders everything shiny as real geometry with physically
+   based materials lit by a coloured studio environment: a marching-cubes metaball blob, a bevelled chrome star and hook,
+   chrome glints, Blot as a glossy teardrop, and extruded chrome type fitted over the HTML text.
+1. **Hero:** an iridescent form (raymarched metaballs with a rainbow thin-film rim and grain) floating over a slowly
    turning guilloche rosette, a chrome four-point star and chrome sparkles. The pointer pulls the form; pressing makes it
    swell and throws sparkles. Chrome "Wet ınk" wordmark with Blot as the dot.
 2. **Studio:** one sentence on laid paper, then an engraved guilloche band.

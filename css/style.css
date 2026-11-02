@@ -45,7 +45,12 @@ em { font-style: italic; }
 :focus-visible { outline: 1px solid currentColor; outline-offset: 4px; }
 
 .ink-layer { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 80; pointer-events: none; }
-.sparkles { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 82; pointer-events: none; }
+.scene3d { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 60; pointer-events: none; }
+.bl { display: inline-block; width: 0; height: 0; vertical-align: baseline; }
+/* once the 3D layer is running, the HTML type stays for layout, selection and screen readers but is not painted */
+.has3d .mega .chrome, .has3d .mega__line:first-child .mega__rise, .has3d .archive__title, .has3d .foot__word span { color: transparent; background: none; -webkit-text-fill-color: transparent; }
+.has3d .mega { filter: none; }
+.has3d .mascot .blot { opacity: 0; }
 
 /* chrome text: the gradient sheen follows the pointer (--sheen set in JS) */
 .chrome {
@@ -64,7 +69,6 @@ em { font-style: italic; }
 .js .bar__glass { animation: fadeDown .6s var(--ease) both; }
 .js .mega__rise { animation: rise 1.2s var(--ease) .15s both; }
 .js .mega__rise--2 { animation-delay: .28s; }
-.js .blob { animation: bloom 1.6s var(--ease) .05s both; }
 .js .rosette { animation: fadeIn 2s ease .2s both; }
 .js .reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s var(--ease), transform .9s var(--ease); transition-delay: calc(var(--i, 0) * .1s); }
 .js .reveal.is-in { opacity: 1; transform: none; }
@@ -98,9 +102,6 @@ em { font-style: italic; }
 .rosette { position: absolute; left: 62%; top: 44%; width: min(118vh, 100vw); height: min(118vh, 100vw); max-width: none; transform: translate(-50%, -50%); z-index: 0; color: var(--white); opacity: .1; pointer-events: none; }
 .rosette g { transform-origin: 0 0; }
 .rosette path { fill: none; stroke: currentColor; stroke-width: .7; vector-effect: non-scaling-stroke; }
-.blob { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; cursor: crosshair; filter: blur(.8px) saturate(1.08); }
-.star { position: absolute; left: 0; top: 0; width: clamp(70px, 9vw, 140px); height: auto; z-index: 3; pointer-events: none; overflow: visible;
-  filter: drop-shadow(0 0 18px rgba(255, 62, 200, .55)) drop-shadow(0 0 40px rgba(159, 233, 255, .35)); will-change: transform; }
 .hero__bottom { position: relative; z-index: 10; display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; pointer-events: none; }
 .hero__bottom > * { pointer-events: auto; }
 .mega { margin: 0; font: 400 clamp(6rem, 17vw, 19rem)/.82 var(--serif); font-variation-settings: "opsz" 96; letter-spacing: -.045em; filter: drop-shadow(0 0 40px rgba(255, 62, 200, .18)); }
@@ -252,7 +253,7 @@ em { font-style: italic; }
 
 /* ---------- Accessibility preferences ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .js .in, .js .bar__glass, .js .mega__rise, .js .blob, .js .rosette { animation: fadeIn .3s ease both; }
+  .js .in, .js .bar__glass, .js .mega__rise, .js .rosette { animation: fadeIn .3s ease both; }
   .js .reveal { transform: none; transition: opacity .3s ease; }
   .row::before, .row__t { transition: none; }
   .mascot .eyes { animation: none; }
