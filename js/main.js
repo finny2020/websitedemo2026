@@ -330,6 +330,7 @@
   // Continuous feedback: a fluorescent trail follows the pointer anywhere on the page (mouse and pen).
   addEventListener("pointermove", e => {
     if (e.pointerType === "touch" || reduced || sheetOpen() || mascotState.active) { lastTrail = null; return; }
+    if (e.target.closest && e.target.closest(".studio")) { lastTrail = null; return; }   // the liquid surface ripples here instead
     const trailInk = e.target.closest && e.target.closest(".contact") ? GREEN : PINK;
     const x = e.pageX, y = e.pageY;
     stroke.add(e.clientX, e.clientY);
@@ -510,40 +511,7 @@
     const p = document.createElementNS(SVGNS, "path"); p.setAttribute("d", d); svg.appendChild(p);
   }
   rosette($("#rosette"));
-  // small corner rosettes for the engraved frame
-  $$("[data-rose]").forEach(svg => {
-    svg.setAttribute("viewBox", "-120 -120 240 240");
-    let d = "";
-    [[104, 12, 18, 16], [76, 10, 13, 14], [48, 8, 9, 12], [22, 6, 6, 8]].forEach(([R, A, k, n]) => {
-      for (let j = 0; j < n; j++) { const ph = j * Math.PI * 2 / (n * k);
-        for (let s2 = 0; s2 <= 240; s2++) { const t = s2 / 240 * Math.PI * 2, r = R + A * Math.sin(k * t + ph * k);
-          d += (s2 ? "L" : "M") + (r * Math.cos(t)).toFixed(1) + " " + (r * Math.sin(t)).toFixed(1); } }
-    });
-    const p = document.createElementNS(SVGNS, "path"); p.setAttribute("d", d); svg.appendChild(p);
-  });
-  // the embossed seal: two laurel branches round a monogram, with the name beneath
-  (function seal(svg) {
-    if (!svg) return;
-    let leaves = "";
-    [-1, 1].forEach(side => {
-      for (let i = 0; i < 9; i++) {
-        const t = .2 + i / 9 * .72, a = Math.PI / 2 + side * (Math.PI * .1 + t * Math.PI * .78);
-        const R = 132, x = Math.cos(a) * R, y = Math.sin(a) * R * .92 + 6;
-        const rot = a * 180 / Math.PI + (side > 0 ? 90 : -90) + side * 28, s = .8 - i * .03;
-        [-1, 1].forEach(off => {
-          leaves += `<ellipse cx="${(x + Math.cos(a) * off * 15).toFixed(1)}" cy="${(y + Math.sin(a) * off * 15).toFixed(1)}" rx="${(7 * s).toFixed(1)}" ry="${(20 * s).toFixed(1)}" transform="rotate(${(rot + off * side * 34).toFixed(1)} ${(x + Math.cos(a) * off * 15).toFixed(1)} ${(y + Math.sin(a) * off * 15).toFixed(1)})"/>`;
-        });
-      }
-      // stem
-      let d = "";
-      for (let i = 0; i <= 40; i++) { const t = .14 + i / 40 * .8, a = Math.PI / 2 + side * (Math.PI * .1 + t * Math.PI * .78);
-        d += (i ? "L" : "M") + (Math.cos(a) * 132).toFixed(1) + " " + (Math.sin(a) * 132 * .92 + 6).toFixed(1); }
-      leaves += `<path d="${d}" fill="none" stroke-width="3.5"/>`;
-    });
-    svg.innerHTML = `<g class="seal__press">${leaves}
-      <text x="0" y="44" text-anchor="middle" class="seal__w">W</text>
-      <text x="0" y="128" text-anchor="middle" class="seal__name">Wet Ink</text></g>`;
-  })($("#seal"));
+
   $$("[data-gband]").forEach(band);
   // the rings turn against each other, very slowly, only while the hero is on screen
   const ringEls = $$("#rosette .ring");

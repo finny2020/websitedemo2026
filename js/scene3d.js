@@ -135,7 +135,7 @@ async function boot() {
   // a little life in the type: it turns a few degrees toward the pointer
   const tiltTarget = () => WI.ptr && WI.ptr.has && !reduced ? ((WI.ptr.x / innerWidth) - .5) * .35 : 0;
   let tilt = 0;
-  typeItems.forEach(it => it.tilt = () => tilt);
+  typeItems.forEach(it => it.tilt = () => tilt);   // studio type (added later) stays still
 
   /* ---------- the iridescent form: marching-cubes metaballs ---------- */
   const blob = new MarchingCubes(46, blobMat, false, true, 60000);
@@ -198,7 +198,7 @@ async function boot() {
     m.visible = true;
   }
   addEventListener("pointermove", e => {
-    if (reduced || e.pointerType === "touch" || !$("#sheet").hidden) return;
+    if (reduced || e.pointerType === "touch" || !$("#sheet").hidden || (e.target.closest && e.target.closest(".studio"))) { last = null; return; }
     if (last) acc += Math.hypot(e.pageX - last.x, e.pageY - last.y);
     last = { x: e.pageX, y: e.pageY };
     if (acc > 80) { acc = 0; glint(e.pageX + (Math.random() - .5) * 20, e.pageY + (Math.random() - .5) * 20, 6 + Math.random() * 7, .9 + Math.random() * .5); kick(); }
@@ -331,6 +331,75 @@ async function boot() {
     return any;
   }
 
+  /* ---------- studio: a white liquid surface with icy type floating on it ---------- */
+  const studioEl = $(".studio");
+  const LX = 140, LY = 90;
+  const liqGeo = new THREE.PlaneGeometry(1, 1, LX, LY);
+  const liqBase = Float32Array.from(liqGeo.attributes.position.array);
+  const liquid = new THREE.Mesh(liqGeo, new THREE.MeshPhysicalMaterial({
+    color: 0xf3f6fa, roughness: .1, metalness: 0, clearcoat: 1, clearcoatRoughness: .03, envMapIntensity: .45,
+    iridescence: .25, iridescenceIOR: 1.3, iridescenceThicknessRange: [200, 500], sheen: .4, sheenColor: new THREE.Color(0xdff3ff)
+  }));
+  scene.add(liquid);
+  // ice gets its own cold studio: white key softboxes, pale blue fills, a grey floor, no colour panels
+  const coldRoom = new THREE.Scene();
+  coldRoom.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), new THREE.MeshBasicMaterial({ color: 0x5d6a78, side: THREE.BackSide })));
+  const cold = (color, k, w, h, pos) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k), side: THREE.DoubleSide })); m.position.set(...pos); m.lookAt(0, 0, 0); coldRoom.add(m); return m; };
+  cold(0xffffff, 7, 30, 6, [0, 22, 8]); cold(0xd6eeff, 4, 10, 24, [-24, 4, 8]); cold(0xbfe2ff, 3, 10, 24, [24, 2, 6]);
+  cold(0xffffff, 9, 5, 5, [8, 10, 22]); cold(0x223040, 1, 40, 20, [0, -22, 0]);
+  const coldFront = cold(0x6f9acb, 1.0, 44, 30, [0, -4, 26]);   // behind the camera: the letters' faces catch this cool blue
+  const iceEnv = pmrem.fromScene(coldRoom, 0.03).texture;
+  coldFront.material.color.set(0xf4f8fc).multiplyScalar(1.5);       // the liquid sees a bright white one instead
+  const milkEnv = pmrem.fromScene(coldRoom, 0.03).texture;
+  const ice = new THREE.MeshPhysicalMaterial({
+    color: 0xeef8ff, envMap: iceEnv, envMapIntensity: 1.5, metalness: .7, roughness: .07,
+    clearcoat: 1, clearcoatRoughness: .02, iridescence: .35, iridescenceIOR: 1.3, iridescenceThicknessRange: [150, 450],
+    sheen: .6, sheenColor: new THREE.Color(0xcfeeff), sheenRoughness: .25
+  });
+
+
+  liquid.material.envMap = milkEnv; liquid.material.envMapIntensity = .9; liquid.material.iridescence = .15;
+  addType($(".studio__l1"), fontN, ice, { z: 30 });
+  addType($(".studio__l2 em"), fontI, ice, { z: 30 });
+  // ripples: the pointer leaves rings in the liquid instead of ink
+  const ripples = [];
+  let lastRipple = 0;
+  studioEl.addEventListener("pointermove", e => {
+    const now = performance.now();
+    if (reduced || now - lastRipple < 70) return;
+    lastRipple = now;
+    const r = studioEl.getBoundingClientRect();
+    ripples.push({ x: e.clientX - r.left, y: e.clientY - r.top, t: 0, a: 1 }); if (ripples.length > 10) ripples.shift();
+    kick();
+  });
+  studioEl.addEventListener("pointerdown", e => {
+    const r = studioEl.getBoundingClientRect();
+    ripples.push({ x: e.clientX - r.left, y: e.clientY - r.top, t: 0, a: 2.4 }); if (ripples.length > 10) ripples.shift();
+    kick();
+  });
+  function syncLiquid(dt) {
+    const r = studioEl.getBoundingClientRect(), vis = r.bottom > 0 && r.top < H;
+    liquid.visible = vis; if (!vis) return false;
+    const w = r.width + 80, h = r.height + 80;
+    liquid.position.set(r.left + r.width / 2 - W / 2, H / 2 - (r.top + r.height / 2), -60);
+    const pos = liqGeo.attributes.position.array, tt = reduced ? 0 : t;
+    for (let i = ripples.length - 1; i >= 0; i--) { ripples[i].t += dt; if (ripples[i].t > 3.2) ripples.splice(i, 1); }
+    for (let k = 0; k < pos.length; k += 3) {
+      const u = liqBase[k], v = liqBase[k + 1], x = u * w, y = v * h;
+      // slow swell: long, soft waves like a sheet of milk
+      let z = 22 * Math.sin(x * .0042 + tt * .55) * Math.cos(y * .0051 - tt * .4)
+            + 12 * Math.sin((x + y) * .0072 - tt * .8) + 6 * Math.sin(x * .013 - y * .009 + tt * 1.1);
+      for (const q of ripples) {
+        const dx = x - (q.x - r.width / 2), dy = y - (r.height / 2 - q.y), d = Math.hypot(dx, dy), front = q.t * 420;
+        z += q.a * 14 * Math.exp(-Math.pow((d - front) / 70, 2)) * Math.sin(d * .06 - q.t * 9) * Math.exp(-q.t * 1.1);
+      }
+      pos[k] = x; pos[k + 1] = y; pos[k + 2] = z;
+    }
+    liqGeo.attributes.position.needsUpdate = true;
+    liqGeo.computeVertexNormals();
+    return true;
+  }
+
   /* ---------- frame ---------- */
   let W = 0, H = 0;
   function resize() {
@@ -350,13 +419,14 @@ async function boot() {
     const dt = Math.min(.05, (now - prev) / 1000); prev = now;
     if (!reduced) t += dt;
     const heroOn = onScreen(hero), anyGlint = glints.some(g => g.visible);
-    const strip = $(".strip"), live = heroOn || onScreen(archiveTitle, 200) || onScreen(strip, 100) || onScreen(foot, 200) || anyGlint;
+    const strip = $(".strip"), live = heroOn || onScreen(studioEl, 50) || onScreen(archiveTitle, 200) || onScreen(strip, 100) || onScreen(foot, 200) || anyGlint;
     if (!live) { renderer.clear(); return; }
 
     tilt += (tiltTarget() - tilt) * Math.min(1, dt * 4);
     let any = false; typeItems.forEach(it => { if (syncType(it, W, H)) any = true; });
 
     syncPieces(dt);
+    syncLiquid(dt);
 
     // hero objects
     const hr = hero.getBoundingClientRect(), narrow = hr.width < 720;

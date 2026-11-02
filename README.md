@@ -19,8 +19,7 @@ laid paper, fluorescent green and fluorescent pink, with chrome and iridescent l
 1. **Hero:** an iridescent form (raymarched metaballs with a rainbow thin-film rim and grain) floating over a slowly
    turning guilloche rosette, a chrome four-point star and chrome sparkles. The pointer pulls the form; pressing makes it
    swell and throws sparkles. Chrome "Wet ınk" wordmark with Blot as the dot.
-2. **Studio:** cotton paper (`assets/paper.webp`), an engraved frame with guilloche corner rosettes, a blind-embossed
-   laurel seal, one sentence, then an engraved band.
+2. **Studio:** one sentence in 3D icy type floating on a rendered white liquid surface that ripples under the pointer.
 3. **Archive:** one short strip: the Loud Feet socks (opens the interactive socks) and five 3D concept studies
    (Pearl, Orbit, Fuzz, Coral, Melt) you can drag to spin.
 4. **Services:** four words on fluorescent green; black ink floods a row from where you enter.

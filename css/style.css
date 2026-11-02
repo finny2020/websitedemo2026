@@ -129,28 +129,12 @@ em { font-style: italic; }
 .gband path { fill: none; stroke: currentColor; stroke-width: .6; vector-effect: non-scaling-stroke; }
 .gband--light { color: var(--white); opacity: .28; }
 
-/* ---------- Studio: cotton paper, an engraved frame and a blind-embossed seal ---------- */
-.studio {
-  position: relative; overflow: clip; color: var(--black); text-align: center;
-  padding: clamp(6rem, 11vw, 9rem) var(--gutter) clamp(4rem, 7vw, 6rem);
-  background: #F6F5F1 url("../assets/paper.webp") center / 900px auto repeat;
-}
-.frame { position: absolute; inset: clamp(.9rem, 2vw, 1.75rem); pointer-events: none; border: 1px solid rgba(5,5,5,.28); outline: 1px solid rgba(5,5,5,.14); outline-offset: -7px; }
-.frame__rose { position: absolute; width: clamp(64px, 8vw, 112px); height: auto; aspect-ratio: 1; color: var(--black); opacity: .4; background: #F6F5F1; border-radius: 50%; }
-.frame__rose path { fill: none; stroke: currentColor; stroke-width: .35; vector-effect: non-scaling-stroke; }
-.frame__rose:nth-child(1) { left: 0; top: 0; transform: translate(-50%, -50%); }
-.frame__rose:nth-child(2) { right: 0; top: 0; transform: translate(50%, -50%); }
-.frame__rose:nth-child(3) { left: 0; bottom: 0; transform: translate(-50%, 50%); }
-.frame__rose:nth-child(4) { right: 0; bottom: 0; transform: translate(50%, 50%); }
-/* blind emboss: paper-coloured shapes lifted by a light edge above and a shadow below */
-.seal { display: block; width: clamp(150px, 18vw, 230px); height: auto; margin: 0 auto clamp(2.5rem, 5vw, 4rem); overflow: visible;
-  filter: drop-shadow(-1.2px -1.2px 0 rgba(255,255,255,1)) drop-shadow(1.5px 2px .8px rgba(0,0,0,.32)) drop-shadow(0 4px 6px rgba(0,0,0,.08)); }
-.seal__press { fill: #EFEEE8; stroke: #EFEEE8; }
-.seal__w { font: 400 150px/1 var(--serif); font-variation-settings: "opsz" 96; }
-.seal__name { font: 500 38px/1 var(--serif); letter-spacing: .26em; }
-.studio__line { position: relative; margin: 0 auto clamp(4rem, 8vw, 7rem); max-width: 21ch; font: 400 clamp(2rem, 4.6vw, 4.6rem)/1.06 var(--serif); font-variation-settings: "opsz" 72; letter-spacing: -.02em; text-wrap: balance; }
-.studio__line em { font-style: italic; }
-.studio .gband { position: relative; }
+/* ---------- Studio: icy type on white liquid (rendered in 3D; this is the fallback and the layout) ---------- */
+.studio { position: relative; min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 8rem var(--gutter); text-align: center; color: var(--black);
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, #fff, #EEF1F5 75%); }
+.studio__line { margin: 0; font: 400 clamp(3rem, 8.4vw, 9.5rem)/1 var(--serif); font-variation-settings: "opsz" 96; letter-spacing: -.035em; }
+.studio__l1, .studio__l2 { display: table; margin-inline: auto; white-space: nowrap; }   /* box = the text, so the 3D type lines up */
+.has3d .studio__line span, .has3d .studio__line em { color: transparent; -webkit-text-fill-color: transparent; }
 
 /* ---------- Archive: a short strip ---------- */
 .archive { position: relative; background: var(--black); padding: clamp(5rem, 8vw, 6.5rem) 0 0; overflow: hidden; }
@@ -219,7 +203,7 @@ em { font-style: italic; }
 .row::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--black); clip-path: circle(0px at var(--x, 50%) var(--y, 50%)); transition: clip-path .6s var(--ease-out); }
 .row.is-wet::before { clip-path: circle(150% at var(--x, 50%) var(--y, 50%)); }
 .row.is-wet { color: var(--green); }
-.row__t { margin: 0; font: 400 clamp(3.25rem, 10.5vw, 10.5rem)/.95 var(--serif); font-variation-settings: "opsz" 96; letter-spacing: -.04em; transition: transform .6s var(--ease); }
+.row__t { margin: 0; font: 700 clamp(3.25rem, 10.5vw, 10.5rem)/.95 var(--serif); font-variation-settings: "opsz" 28; letter-spacing: -.04em; transition: transform .6s var(--ease); }
 .row.is-wet .row__t { transform: translateX(1.5rem); }
 
 /* ---------- Contact: dreamy pink ---------- */
@@ -257,6 +241,7 @@ em { font-style: italic; }
   .nav a { padding: .65rem .55rem; font-size: .92rem; }
   .hero__bottom { flex-direction: column; align-items: flex-start; gap: 1rem; }
   .mega { font-size: 30vw; }
+  .studio__line { font-size: 9.2vw; line-height: 1.15; }
   .rosette { left: 50%; top: 36%; width: 150vw; height: 150vw; }
   .strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
