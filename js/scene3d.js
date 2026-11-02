@@ -90,7 +90,7 @@ async function boot() {
     }
     const geos = shapes.map(sh => {
       const geo = new THREE.ExtrudeGeometry(sh, AVATAR
-        ? { depth: .05, curveSegments: 28, bevelEnabled: true, bevelThickness: .034, bevelSize: .011, bevelSegments: 14 }
+        ? { depth: .03, curveSegments: 32, bevelEnabled: true, bevelThickness: .05, bevelSize: .012, bevelSegments: 20 }
         : { depth: .07, curveSegments: 18, bevelEnabled: true, bevelThickness: .016, bevelSize: .0065, bevelSegments: 8 });
       geo.translate(sh._dx, 0, -.035);
       return geo;
@@ -128,15 +128,32 @@ async function boot() {
     item.mesh.scale.set(fs, fs, fs);
     item.mesh.position.set(r.left - W / 2, H / 2 - base, item.z || 0);
     item.mesh.rotation.y = item.tilt ? item.tilt() : 0;
-    if (AVATAR && item.mat === glass) item.mesh.rotation.set(-.07, .12, 0);   // angle the glass so light sweeps across it
+    if (AVATAR && item.mat === glass) item.mesh.rotation.set(-.1, .16, 0);   // angle the glass so light sweeps across it
     item.mesh.visible = r.bottom > -fs && r.top < H + fs;
     return item.mesh.visible;
   }
+  // avatar glass: its own environment, black with thin white and tinted strip lights (like a product photo)
+  let glassEnv = null;
+  if (AVATAR) {
+    const strips = new THREE.Scene();
+    strips.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide })));
+    const strip = (c, k, w, h, pos, rz = 0) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k), side: THREE.DoubleSide }));
+      m.position.set(...pos); m.lookAt(0, 0, 0); m.rotateZ(rz); strips.add(m); };
+    strip(0xffffff, 6, 2.2, 40, [-9, 0, 20], .5);     // tall white strip, front left, diagonal
+    strip(0xffffff, 4, 1.2, 40, [11, 0, 18], -.35);   // thinner strip, front right
+    strip(0xffd9f4, 3, 40, 1.4, [0, 12, 16]);         // pink-white top strip
+    strip(0xd8f4ff, 3, 40, 1.2, [0, -12, 16]);        // cool bottom strip
+    strip(0xffffff, 8, 30, 3, [0, 22, 0]);            // overhead
+    strip(0xb9a8ff, 2.5, 3, 30, [-24, 0, 0]);         // violet rim left
+    strip(0x9fe9ff, 2.5, 3, 30, [24, 0, 0]);          // cyan rim right
+    glassEnv = pmrem.fromScene(strips, 0.01).texture;
+  }
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, metalness: 0, roughness: 0, transmission: 1, thickness: 10, ior: 1.6, dispersion: 10,
-    iridescence: 1, iridescenceIOR: 2.1, iridescenceThicknessRange: [80, 1100], clearcoat: 1, clearcoatRoughness: 0,
-    specularIntensity: 1.6, envMapIntensity: 3.2, transparent: true
+    color: 0xffffff, metalness: 0, roughness: 0, transmission: 1, thickness: 6, ior: 1.5, dispersion: 14,
+    iridescence: 1, iridescenceIOR: 2.2, iridescenceThicknessRange: [100, 1000], clearcoat: 1, clearcoatRoughness: 0,
+    specularIntensity: 1, envMap: glassEnv, envMapIntensity: 1.6, transparent: true
   });
+
   const heroType = AVATAR ? glass : chrome;
   if (AVATAR) renderer.transmissionResolutionScale = 1;
   addType($(".mega__line:first-child .mega__rise"), fontN, heroType);
@@ -199,9 +216,8 @@ async function boot() {
     const p = new THREE.Mesh(eyeGeo, white); p.scale.set(.075, .075, .04); p.position.set(s * .36, -.03, 1.0); blot.add(p); pupils.push(p);
   });
   if (AVATAR) {   // Blot in pink glass
-    drop.material = new THREE.MeshPhysicalMaterial({ color: 0xffb3e6, metalness: 0, roughness: .03, transmission: .9, thickness: 1.2, ior: 1.45,
-      attenuationColor: new THREE.Color(0xff5fcf), attenuationDistance: 1.6, iridescence: 1, iridescenceIOR: 1.7, iridescenceThicknessRange: [150, 800],
-      clearcoat: 1, envMapIntensity: 2, transparent: true });
+    drop.material = new THREE.MeshPhysicalMaterial({ color: 0xff9ee0, metalness: 0, roughness: .03, transmission: .55, thickness: .6, ior: 1.45, iridescence: 1, iridescenceIOR: 1.7, iridescenceThicknessRange: [150, 800],
+      clearcoat: 1, envMap: glassEnv, envMapIntensity: 1.6, transparent: true });
   }
   scene.add(blot);
   const mascotEl = $("#mascot");
@@ -417,17 +433,60 @@ async function boot() {
     return true;
   }
 
+  /* avatar backdrop: a painted sky. Soft gradient, a violet bloom, glossy brush-stroke clouds, sparkles, grain. */
   if (AVATAR) {
-    const c = document.createElement("canvas"); c.width = c.height = 1024;
-    const g = c.getContext("2d"); g.fillStyle = "#050505"; g.fillRect(0, 0, 1024, 1024);
-    [[300, 330, 300, "rgba(255,95,207,.9)"], [720, 400, 300, "rgba(122,107,255,.85)"], [470, 760, 300, "rgba(110,230,255,.7)"], [820, 800, 200, "rgba(198,255,26,.45)"], [560, 560, 120, "rgba(255,255,255,.35)"]]
-      .forEach(([x, y, r, col]) => { const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, col); rg.addColorStop(1, "rgba(5,5,5,0)"); g.fillStyle = rg; g.fillRect(0, 0, 1024, 1024); });
+    const N = 1600, c = document.createElement("canvas"); c.width = c.height = N;
+    const g = c.getContext("2d");
+    const lg = g.createLinearGradient(0, 0, N * .3, N);
+    lg.addColorStop(0, "#3fb6f0"); lg.addColorStop(.45, "#2f8fe6"); lg.addColorStop(1, "#36c6e8");
+    g.fillStyle = lg; g.fillRect(0, 0, N, N);
+    const bloom = (x, y, r, col) => { const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, col); rg.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = rg; g.fillRect(0, 0, N, N); };
+    bloom(N * .56, N * .55, N * .42, "rgba(150,120,255,.55)");   // violet heart
+    bloom(N * .1, N * .25, N * .4, "rgba(80,230,220,.35)");      // aqua edge
+    bloom(N * .9, N * .9, N * .35, "rgba(80,220,230,.3)");
+    // a cloud, painted on its own layer: one merged silhouette, a pale glossy rim lit from the top-left
+    // (the shape minus a shifted copy of itself), see-through blue cores, soft edges
+    function cloud(cx, cy, k, lobes, tail) {
+      const L = document.createElement("canvas"); L.width = L.height = N; const q = L.getContext("2d");
+      const path = new Path2D();
+      lobes.forEach(([x, y, rx, ry]) => { path.moveTo(cx + (x + rx) * k, cy + y * k); path.ellipse(cx + x * k, cy + y * k, rx * k, ry * k, 0, 0, Math.PI * 2); });
+      tail.forEach(([x, y, w, h]) => path.roundRect(cx + x * k, cy + y * k, w * k, h * k, h * k / 2));
+      // body: cream to soft blue
+      const fill = q.createLinearGradient(cx - 200 * k, cy - 150 * k, cx + 220 * k, cy + 160 * k);
+      fill.addColorStop(0, "rgba(255,247,222,.98)"); fill.addColorStop(.5, "rgba(206,226,250,.85)"); fill.addColorStop(1, "rgba(246,240,222,.92)");
+      q.fillStyle = fill; q.fill(path);
+      // inside: the same silhouette shifted down-right, filled with translucent blue, leaves a lit rim on the top-left
+      q.globalCompositeOperation = "source-atop";
+      q.save(); q.translate(9 * k, 11 * k); q.filter = `blur(${10 * k}px)`; q.fillStyle = "rgba(96,160,240,.55)"; q.fill(path); q.restore();
+      lobes.forEach(([x, y, rx, ry]) => {
+        const rg = q.createRadialGradient(cx + x * k, cy + (y + ry * .25) * k, 0, cx + x * k, cy + y * k, Math.max(rx, ry) * k);
+        rg.addColorStop(0, "rgba(60,125,230,.5)"); rg.addColorStop(1, "rgba(60,125,230,0)"); q.fillStyle = rg; q.fillRect(0, 0, N, N);
+      });
+      q.globalCompositeOperation = "source-over";
+      g.save(); g.filter = "blur(2px)"; g.drawImage(L, 0, 0); g.restore();
+      g.save(); g.filter = "blur(26px)"; g.globalAlpha = .35; g.globalCompositeOperation = "screen"; g.drawImage(L, 0, 0); g.restore();   // glow
+    }
+    cloud(N * .14, N * .2, 1.0, [[-30, 10, 105, 88], [85, -35, 120, 105], [200, 12, 78, 64]], [[-90, 70, 380, 50], [20, 132, 260, 36]]);
+    cloud(N * .86, N * .8, 1.05, [[-150, 22, 92, 76], [-30, -42, 125, 110], [90, 6, 88, 74]], [[-310, 78, 400, 50], [-200, 140, 280, 34]]);
+    // four-point sparkles
+    function sparkle(x, y, r) {
+      g.save(); g.translate(x, y); g.globalCompositeOperation = "screen";
+      const rg = g.createRadialGradient(0, 0, 0, 0, 0, r * .9); rg.addColorStop(0, "rgba(255,255,255,.9)"); rg.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = rg; g.beginPath(); g.arc(0, 0, r * .9, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#fff"; g.beginPath(); const q = r * .06;
+      g.moveTo(0, -r); g.quadraticCurveTo(q, -q, r * .8, 0); g.quadraticCurveTo(q, q, 0, r); g.quadraticCurveTo(-q, q, -r * .8, 0); g.quadraticCurveTo(-q, -q, 0, -r); g.fill();
+      g.restore();
+    }
+    [[.42, .07, 40], [.06, .5, 34], [.95, .4, 38], [.55, .95, 30], [.9, .12, 24], [.16, .9, 24]].forEach(([x, y, r]) => sparkle(x * N, y * N, r));
+    // grain
+    const img = g.getImageData(0, 0, N, N), d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const n = (Math.random() - .5) * 34; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+    g.putImageData(img, 0, 0);
     const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-    const field = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
-    scene.add(field);
-    const fit = () => { const r = $(".mega").getBoundingClientRect(), s2 = Math.max(r.width, r.height) * 1.5;
-      field.scale.set(s2, s2, 1); field.position.set(r.left + r.width / 2 - W / 2, H / 2 - (r.top + r.height / 2), -160); };
-    window.__fitField = fit;
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+    scene.add(sky);
+    window.__fitSky = () => { const r = $(".mega").getBoundingClientRect(), s2 = Math.max(r.width, r.height) * 1.36 * 1.22;
+      sky.scale.set(s2, s2, 1); sky.position.set(r.left + r.width / 2 - W / 2, H / 2 - (r.top + r.height / 2 + r.height * .03), -160); };
   }
   /* ---------- frame ---------- */
   let W = 0, H = 0;
@@ -455,7 +514,7 @@ async function boot() {
     let any = false; typeItems.forEach(it => { if (syncType(it, W, H)) any = true; });
 
     syncPieces(dt);
-    if (window.__fitField) window.__fitField();
+    if (window.__fitSky) window.__fitSky();
     syncLiquid(dt);
 
     // hero objects
