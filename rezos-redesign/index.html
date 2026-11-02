@@ -52,7 +52,21 @@ img{display:block;max-width:100%}
 .foot{background:var(--ink);color:#d9d6d0;padding-block:70px 30px;display:grid;grid-template-columns:2fr 1fr 1fr;gap:24px}
 .foot h3{font:300 clamp(34px,4vw,60px)/1 var(--sans);letter-spacing:-.04em;margin:0;color:#fff}
 .foot div{min-width:0;font-size:14px}
-@media(max-width:820px){.pill{display:none}.panel{grid-template-columns:1fr}.ph{min-height:300px}.foot{grid-template-columns:1fr}}
+/* haul: pinned scroll scene (crane loads the module, truck drives it out over the services band) */
+.haul{height:340vh;background:var(--paper);position:relative}
+.stage{position:sticky;top:0;height:100svh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.ghost{position:absolute;top:8vh;left:0;white-space:nowrap;font:500 clamp(90px,17vw,300px)/1 var(--sans);letter-spacing:-.05em;color:rgba(21,21,19,.07);will-change:transform}
+.scene{position:relative;width:100%;height:auto;max-height:46svh;display:block}
+.band{background:var(--ink);color:#e9e6e0;padding-block:34px 44px;display:grid;grid-template-columns:1fr 2fr;gap:30px;align-items:start}
+.band>*{min-width:0}
+.band h2{margin:0;font:500 clamp(22px,2.4vw,36px)/1.05 var(--sans);letter-spacing:-.02em;text-transform:uppercase}
+.band h2 span{color:#5d5d58}
+.svc{display:flex;gap:28px;will-change:transform}
+.svc div{flex:0 0 220px}
+.svc b{display:block;font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--orange)}
+.svc p{margin:8px 0 0;font-size:13px;color:#a9a69f}
+@media(max-width:820px){.band{grid-template-columns:1fr}.haul{height:280vh}
+.pill{display:none}.panel{grid-template-columns:1fr}.ph{min-height:300px}.foot{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(prefers-reduced-transparency:reduce){.pill{background:#333;backdrop-filter:none}}
 </style>
@@ -67,6 +81,39 @@ img{display:block;max-width:100%}
   <img src="img/hero.jpg" alt="Interior by Rezos: wooden dining table against a hand-printed lace wall">
   <h1><span>BUILT TO</span> <span style="animation-delay:.12s">LAST.</span></h1>
   <p>Twenty years designing and building homes, offices and public buildings in Sofia. One team from the first CAD drawing to the finished interior.<br><a href="#work">Our projects</a></p>
+</section>
+
+<section class="haul" id="haul" aria-label="Our services">
+  <div class="stage">
+    <div class="ghost" id="ghost" aria-hidden="true">OUR SERVICES · OUR SERVICES</div>
+    <svg class="scene" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+      <!-- crane -->
+      <g id="crane" fill="none" stroke="#151513" stroke-width="5">
+        <path d="M180 300V40M150 300 180 40 210 300M160 220h40M165 140h30"/>
+        <path d="M120 40h780M180 40l60-30 660 30M240 10v30" stroke-width="4"/>
+        <rect x="128" y="40" width="40" height="22" fill="#5a6e74" stroke="none"/>
+      </g>
+      <g id="hook"><line id="cable" x1="0" y1="40" x2="0" y2="120" stroke="#151513" stroke-width="2"/>
+        <g id="load"><rect x="-90" y="120" width="180" height="62" fill="#e4e1dc" stroke="#151513" stroke-width="3"/><path d="M-60 120v62M-30 120v62M0 120v62M30 120v62M60 120v62" stroke="#151513" stroke-width="1.5"/><rect x="-90" y="112" width="180" height="8" fill="#f39a1e"/></g></g>
+      <!-- truck -->
+      <g id="truck">
+        <rect x="0" y="236" width="300" height="12" fill="#151513"/>
+        <path d="M300 248V196h40l30 22v30z" fill="#f39a1e"/><path d="M318 202h20l18 14h-38z" fill="#cfe3ea"/>
+        <rect x="300" y="190" width="10" height="58" fill="#151513"/>
+        <g fill="#151513"><circle cx="40" cy="262" r="15"/><circle cx="76" cy="262" r="15"/><circle cx="250" cy="262" r="15"/><circle cx="345" cy="262" r="15"/></g>
+        <g fill="#9a9a94"><circle cx="40" cy="262" r="5"/><circle cx="76" cy="262" r="5"/><circle cx="250" cy="262" r="5"/><circle cx="345" cy="262" r="5"/></g>
+      </g>
+    </svg>
+    <div class="band wrap">
+      <h2 id="bandh">Everything your building needs.<br><span>Under one roof.</span></h2>
+      <div class="svc" id="svc">
+        <div><b>Design</b><p>CAD blueprints and architectural design for residential and public buildings.</p></div>
+        <div><b>Construction</b><p>Residential, industrial and commercial buildings with full building management.</p></div>
+        <div><b>Interior design</b><p>Interior and exterior design that finishes every project.</p></div>
+        <div><b>Partners &amp; awards</b><p>Twenty years of work across Sofia and Bulgaria.</p></div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section class="panel stone wrap" id="services">
@@ -98,3 +145,35 @@ img{display:block;max-width:100%}
   <div>+359 878 62 88 22<br>+359 878 62 88 23<br>skrezos@gmail.com</div>
   <div>136 Lui Ayer Str<br>Manastirski Livadi, Sofia<br><br>© 2025 Rezos Ltd.</div>
 </footer>
+<script>
+(() => {
+  const $ = s => document.getElementById(s), haul = $('haul');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const seg = (p, a, b) => clamp((p - a) / (b - a));
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  // critically damped spring (damping 1, response .35s) smooths scroll into motion
+  let x = 0, v = 0, target = 0, last = performance.now();
+  const k = (2 * Math.PI / .35) ** 2, c = 4 * Math.PI / .35;
+  function draw(p) {
+    const lift = ease(seg(p, 0, .22)), swing = ease(seg(p, .18, .38)), lower = ease(seg(p, .36, .5)), drive = ease(seg(p, .52, .95)), arrive = ease(seg(p, .05, .36));
+    const hx = 260 + swing * 520, cable = 120 - lift * 70 + lower * 124;   // hook travels along the jib
+    const truckX = -420 + arrive * 1050 + drive * 1100;                  // truck parks under the jib, then drives off
+    $('hook').setAttribute('transform', `translate(${hx},0)`);
+    $('cable').setAttribute('y2', cable);
+    $('load').setAttribute('transform', `translate(0,${cable - 120})`);
+    if (lower >= 1) { $('load').setAttribute('transform', `translate(${truckX + 150 - hx},54)`); $('cable').setAttribute('y2', 40 + (1 - drive) * 30); }
+    $('truck').setAttribute('transform', `translate(${truckX},0)`);
+    $('ghost').style.transform = `translateX(${-p * 60}%)`;
+    $('svc').style.transform = `translateX(${(1 - p) * 30 - p * 20}%)`;
+  }
+  function measure() { const r = haul.getBoundingClientRect(); target = clamp(-r.top / (r.height - innerHeight)); }
+  function tick(t) {
+    const dt = Math.min(.032, (t - last) / 1000); last = t;
+    if (reduce) x = target; else { v += (-k * (x - target) - c * v) * dt; x += v * dt; }
+    draw(x); requestAnimationFrame(tick);
+  }
+  addEventListener('scroll', measure, { passive: true }); addEventListener('resize', measure);
+  measure(); x = target; requestAnimationFrame(tick);
+})();
+</script>
