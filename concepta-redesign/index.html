@@ -1,0 +1,493 @@
+<title>Concepta Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=Inter+Tight:wght@300;400;500&family=Jost:wght@400&display=swap">
+<style>
+/* Layout: editorial interiors magazine. Olive and cotton panels split like spreads, condensed Didone headlines,
+   a light grotesk for the giant wordmark and small caps. Concepta red only on the logo square and the nav dots. */
+html, body { background: #14140f; }
+:root {
+  --olive: #6d7150;
+  --olive-deep: #464a33;
+  --cotton: #e8e3d8;
+  --cotton-2: #dcd5c7;
+  --ink: #1b1b16;
+  --night: #14140f;
+  --mist: #f4f1ea;
+  --red: #e1251b;
+  --line-dark: rgba(27,27,22,.22);
+  --line-light: rgba(232,227,216,.28);
+
+  --serif: "Oranienbaum", "Didot", "Bodoni 72", "Times New Roman", serif;
+  --sans: "Inter Tight", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --logo: "Jost", "Futura", "Century Gothic", sans-serif;
+
+  --gutter: clamp(16px, 2.2vw, 36px);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--night); color: var(--cotton);
+  font: 400 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img { display: block; max-width: 100%; }
+a { color: inherit; }
+:focus-visible { outline: 1px solid var(--red); outline-offset: 3px; }
+.wrap { padding-left: max(var(--gutter), env(safe-area-inset-left, 0px)); padding-right: max(var(--gutter), env(safe-area-inset-right, 0px)); }
+
+/* small caps used for nav/meta, mirroring the reference boards */
+.caps { font: 500 11px/1.35 var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.serif-caps { font-family: var(--serif); text-transform: uppercase; letter-spacing: -.005em; line-height: .92; font-weight: 400; text-wrap: balance; }
+.link-u { font: 400 clamp(20px, 1.8vw, 26px)/1.15 var(--sans); text-decoration: underline; text-underline-offset: .18em; text-decoration-thickness: 1px; letter-spacing: -.01em; }
+
+/* ---------- NAV ---------- */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--night); }
+.nav {
+  position: fixed; z-index: 50; top: env(safe-area-inset-top, 0px); left: 0; right: 0;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  padding-block: 14px; color: var(--cotton);
+  transition: background-color .4s, color .4s, backdrop-filter .4s;
+}
+.nav.solid { background: rgba(20,20,15,.55); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); }
+.nav .right { justify-self: end; display: flex; gap: 22px; align-items: center; }
+.nav .mid { justify-self: center; }
+.nav a { text-decoration: none; }
+.nav .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--red); display: inline-block; margin-right: 8px; transform: translateY(-1px); }
+.logo { text-transform: none; display: inline-flex; flex-direction: column; gap: 2px; color: var(--cotton); text-decoration: none; }
+.logo svg { width: 118px; height: auto; overflow: visible; }
+.logo small { font: 400 8.5px/1 var(--sans); letter-spacing: .04em; opacity: .75; padding-left: 4px; }
+
+/* ---------- HERO (mockup 1: olive split) ---------- */
+.hero { position: relative; display: grid; grid-template-columns: 41% 1fr; height: clamp(600px, 94svh, 940px); background: var(--olive); overflow: hidden; }
+.hero-copy { position: relative; padding: 108px var(--gutter) 40px max(var(--gutter), env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; color: var(--cotton); z-index: 2; }
+.hero-copy .kick { margin-bottom: 30px; }
+.hero-copy h1 { font-size: clamp(40px, 4.6vw, 76px); margin: 0; max-width: 9.5ch; }
+.hero-copy .blurb { margin-top: auto; max-width: 30ch; }
+.hero-copy .series { display: flex; gap: 18px; align-items: center; margin-top: 22px; }
+.ring { width: 15px; height: 15px; border: 1px solid currentColor; border-radius: 50%; display: inline-grid; place-items: center; }
+.ring::after { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.hero-media { position: relative; overflow: hidden; }
+.hero-media img { width: 100%; height: 100%; object-fit: cover; object-position: 38% 50%; transform-origin: 60% 50%; will-change: transform; }
+.wordmark {
+  position: absolute; z-index: 3; left: max(var(--gutter), env(safe-area-inset-left, 0px)); bottom: clamp(150px, 19vh, 200px);
+  font: 300 clamp(76px, 15.2vw, 250px)/.8 var(--sans); letter-spacing: -.055em; color: var(--cotton);
+  white-space: nowrap; pointer-events: none; mix-blend-mode: normal;
+}
+.wordmark sup { font-size: .12em; letter-spacing: 0; vertical-align: top; position: relative; top: .35em; margin-left: .2em; font-weight: 400; }
+
+/* hotspot markers, as on the reference chairs */
+.hotspot { position: absolute; z-index: 4; width: 44px; height: 44px; margin: -22px 0 0 -22px; border: 0; padding: 0; background: none; cursor: pointer; color: var(--mist); }
+.hotspot .o { position: absolute; inset: 4px; border: 1px solid rgba(244,241,234,.85); border-radius: 50%; transition: transform .5s var(--ease-out); }
+.hotspot .o::after { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: var(--mist); }
+.hotspot .o::before { content: ""; position: absolute; inset: -1px; border-radius: 50%; border: 1px solid rgba(244,241,234,.6); animation: ping 2.8s var(--ease-out) infinite; }
+@keyframes ping { 0% { transform: scale(1); opacity: .9 } 70%,100% { transform: scale(1.9); opacity: 0 } }
+.hotspot .tip { position: absolute; left: 44px; top: 50%; transform: translate(-6px,-50%); opacity: 0; white-space: nowrap; padding: 7px 11px; background: rgba(20,20,15,.42); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(244,241,234,.22); transition: opacity .25s, transform .45s var(--ease-out); pointer-events: none; }
+.hotspot:hover .o, .hotspot:focus-visible .o { transform: scale(1.18); }
+.hotspot:active .o { transform: scale(.9); transition-duration: .1s; }
+.hotspot:hover .tip, .hotspot:focus-visible .tip { opacity: 1; transform: translate(0,-50%); }
+
+/* ---------- MOCKUP 2: dark image + cotton spread ---------- */
+.spread { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-block: 12px; background: var(--night); }
+.spread > * { min-width: 0; }
+.spread .pic { position: relative; overflow: hidden; min-height: 620px; }
+.spread .pic img { position: absolute; inset: -6% 0; width: 100%; height: 112%; object-fit: cover; will-change: transform; }
+.spread .pic .title { position: absolute; left: 28px; top: 26px; color: var(--mist); z-index: 2; }
+.spread .pic .title svg { margin-top: 12px; }
+.card { background: var(--cotton); color: var(--ink); padding: 40px clamp(20px, 4vw, 60px) 36px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.card .caps { margin-bottom: 14px; }
+.card h2 { font-size: clamp(42px, 5.1vw, 84px); line-height: 1; margin: 0; max-width: 12ch; }
+.card .meta { width: 100%; display: flex; justify-content: space-between; margin-top: 22px; }
+.card .glyphs { display: flex; gap: 6px; margin: 16px 0 28px; }
+.card .thumb { width: min(46%, 260px); aspect-ratio: 4 / 5; overflow: hidden; }
+.card .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--ease-out); }
+.card .thumb:hover img { transform: scale(1.06); }
+.card p { font-size: 12px; line-height: 1.55; max-width: 58ch; margin: 32px 0 0; }
+.quote .w { opacity: .18; transition: opacity .35s linear; }
+.quote .w.on { opacity: 1; }
+
+/* ---------- MOCKUP 3: 3D ПРОЕКТИ index ---------- */
+.index { background: var(--cotton); color: var(--ink); padding-block: 96px 64px; }
+.index h2 { font: 300 clamp(64px, 14.4vw, 236px)/.82 var(--sans); letter-spacing: -.06em; margin: 0; white-space: nowrap; }
+.index h2 .ch { display: inline-block; will-change: transform; }
+.index .rule { height: 1px; background: var(--ink); margin: 22px 0 28px; transform-origin: left; }
+.index .row { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 24px; }
+.index .links { display: flex; flex-direction: column; gap: 10px; }
+.index .links a { width: fit-content; }
+.stamp { width: 132px; height: 66px; border: 1px solid var(--ink); border-radius: 50%; display: grid; place-items: center; font: italic 400 15px/1 var(--serif); letter-spacing: .02em; transform: rotate(-8deg); }
+.rooms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 56px; }
+.room { min-width: 0; text-decoration: none; }
+.room .caps { margin-bottom: 10px; display: flex; justify-content: space-between; }
+.room .ph { aspect-ratio: 4 / 3.2; overflow: hidden; background: var(--cotton-2); }
+.room .ph img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.02); transition: transform 1.1s var(--ease-out); }
+.room:hover .ph img, .room:focus-visible .ph img { transform: scale(1.08); }
+.room .arrow { transition: transform .5s var(--ease-out); display: inline-block; }
+.room:hover .arrow { transform: translate(3px,-3px); }
+
+/* ---------- MOCKUP 4: gallery rail (spring drag) ---------- */
+.gallery { background: var(--olive-deep); color: var(--cotton); padding-block: 88px 72px; overflow: hidden; }
+.gallery .head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 40px; }
+.gallery h2 { font-size: clamp(46px, 6.4vw, 104px); margin: 0; }
+.ctrls { display: flex; gap: 10px; }
+.ctrls button { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line-light); background: transparent; color: var(--cotton); cursor: pointer; display: grid; place-items: center; transition: background-color .2s, transform .1s; }
+.ctrls button:hover { background: rgba(232,227,216,.1); }
+.ctrls button:active { transform: scale(.94); }
+.rail { touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; }
+.rail.dragging { cursor: grabbing; }
+.track { display: flex; gap: 14px; will-change: transform; }
+.slide { flex: 0 0 auto; width: clamp(250px, 27vw, 420px); }
+.slide .ph { aspect-ratio: 4 / 5; overflow: hidden; position: relative; }
+.slide .ph img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; }
+.slide .cap { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; gap: 12px; }
+.slide .cap .link-u { font-size: clamp(18px, 1.5vw, 22px); }
+.progress { margin-top: 36px; height: 1px; background: var(--line-light); position: relative; }
+.progress i { position: absolute; left: 0; top: -1px; height: 3px; width: 18%; background: var(--cotton); }
+
+/* ---------- MOCKUP 5: studio / founders ---------- */
+.studio { background: var(--night); padding-block: 110px 100px; }
+.studio .grid { display: grid; grid-template-columns: 1fr minmax(0, 520px) 1fr; align-items: center; gap: 32px; }
+.studio h2 { grid-column: 1 / -1; text-align: center; font-size: clamp(34px, 4vw, 64px); margin: 0 0 40px; }
+.stat { text-align: center; }
+.stat b { display: block; font: 300 clamp(72px, 8.4vw, 140px)/.9 var(--sans); letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.stat span { display: block; margin-top: 10px; }
+.founders { aspect-ratio: 3 / 2; overflow: hidden; }
+.founders img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.85) contrast(1.02); }
+
+/* ---------- MOCKUP 6: contact ---------- */
+.contact { background: var(--olive); color: var(--cotton); padding-block: 96px 28px; }
+.contact h2 { font-size: clamp(64px, 11vw, 190px); margin: 0 0 56px; }
+.cgrid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line-light); }
+.cgrid > div { padding: 22px 22px 30px 0; min-width: 0; }
+.cgrid > div + div { padding-left: 22px; border-left: 1px solid var(--line-light); }
+.cgrid .val { font: 400 clamp(20px, 1.9vw, 30px)/1.25 var(--sans); letter-spacing: -.015em; margin-top: 14px; overflow-wrap: anywhere; }
+.copy { margin-top: 14px; background: none; border: 1px solid var(--line-light); color: var(--cotton); padding: 10px 14px; cursor: pointer; transition: background-color .2s, transform .1s; }
+.copy:hover { background: rgba(232,227,216,.1); }
+.copy:active { transform: scale(.97); }
+.foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 90px; padding-top: 18px; border-top: 1px solid var(--line-light); }
+
+/* ---------- load choreography (starts from visible-ish states; never hides content) ---------- */
+.rise { animation: rise 1s var(--ease-out) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); filter: blur(6px); } }
+.hero-media { animation: unveil 1.5s var(--ease-out) both .1s; }
+@keyframes unveil { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+.wordmark .l { display: inline-block; animation: lift 1.2s var(--ease-out) both; }
+@keyframes lift { from { transform: translateY(40%); opacity: 0; } }
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .nav .mid { display: none; }
+  .nav { grid-template-columns: 1fr auto; }
+  .hero { grid-template-columns: 1fr; grid-template-rows: 54svh auto; height: auto; }
+  .hero-media { grid-row: 1; }
+  .hero-copy { grid-row: 2; padding-top: 40px; padding-bottom: 150px; min-height: 380px; }
+  .hero-copy .blurb { margin-top: 36px; }
+  .wordmark { bottom: auto; top: calc(54svh - .78em); font-size: 18.5vw; }
+  .hero-media img { object-position: 62% 70%; }
+  .spread { grid-template-columns: 1fr; }
+  .spread .pic { min-height: 420px; }
+  .rooms { grid-template-columns: 1fr; }
+  .index .row { grid-template-columns: 1fr; }
+  .studio .grid { grid-template-columns: 1fr 1fr; }
+  .studio .founders { grid-column: 1 / -1; grid-row: 2; }
+  .cgrid { grid-template-columns: 1fr; }
+  .cgrid > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line-light); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+  .quote .w { opacity: 1; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .nav.solid, .hotspot .tip { background: var(--night); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+</style>
+
+<!-- Concepta mark, redrawn as vector from the studio's logo -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 236 76">
+    <rect x="4" y="6" width="96" height="64" fill="#e1251b" transform="rotate(-5 52 38)"/>
+    <text x="20" y="58" font-family="Jost, Futura, Century Gothic, sans-serif" font-size="44" fill="#fff" letter-spacing="-1">con</text>
+    <text x="91" y="58" font-family="Jost, Futura, Century Gothic, sans-serif" font-size="44" fill="currentColor" letter-spacing="-1">cepta</text>
+  </symbol>
+</svg>
+
+<header class="nav wrap" id="nav">
+  <a class="logo" href="#top" aria-label="Concepta, начало">
+    <svg viewBox="0 0 236 76" role="img" aria-hidden="true"><use href="#mark"/></svg>
+    <small>студио за интериор и дизайн</small>
+  </a>
+  <a class="mid caps" href="#projects">Меню</a>
+  <nav class="right caps" aria-label="Основна навигация">
+    <a href="#projects"><span class="dot"></span>3D проекти</a>
+    <a href="#contact">Контакти</a>
+  </nav>
+</header>
+
+<main id="top">
+  <!-- 1 · HERO -->
+  <section class="hero" aria-label="Начало">
+    <div class="hero-copy">
+      <p class="caps kick rise" style="animation-delay:.25s">Modern design<br>Проект от серията</p>
+      <h1 class="serif-caps rise" style="animation-delay:.35s">Интериор, който се реализира</h1>
+      <p class="caps blurb rise" style="animation-delay:.55s">Не е достатъчно само да създадеш дизайн. Важното е да можеш да го реализираш.</p>
+      <div class="series caps rise" style="animation-delay:.65s"><span class="ring"></span><span>София · Лозенец</span></div>
+    </div>
+    <div class="hero-media">
+      <img id="heroImg" src="img/hero-dining.jpg" alt="Реализиран интериор: трапезна зона с жълти столове, дъбова ламперия и осветена ниша" fetchpriority="high">
+      <button class="hotspot" style="left:66%;top:76%" aria-label="Трапезна зона"><span class="o"></span><span class="tip caps">Трапезна зона</span></button>
+      <button class="hotspot" style="left:80%;top:30%" aria-label="Завеси и перде по поръчка"><span class="o"></span><span class="tip caps">Завеси по поръчка</span></button>
+    </div>
+    <div class="wordmark" id="wordmark" aria-hidden="true"></div>
+  </section>
+
+  <!-- 2 · SPREAD -->
+  <section class="spread wrap" aria-label="За студиото">
+    <div class="pic" data-parallax>
+      <img src="img/render-tv-wall.jpg" alt="3D проект: дневна със стена от бетон, синьо-сив гардероб и дъбов шкаф">
+      <div class="title"><span class="link-u">Дневна</span><br>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" aria-hidden="true"><path d="M3 15 15 3M6 3h9v9"/></svg></div>
+      <button class="hotspot" style="left:60%;top:84%" aria-label="Маси от дъб и мрамор"><span class="o"></span><span class="tip caps">Дъб и мрамор</span></button>
+      <button class="hotspot" style="left:32%;top:44%" aria-label="Гардероб в синьо-сив лак"><span class="o"></span><span class="tip caps">Синьо-сив лак</span></button>
+    </div>
+    <article class="card">
+      <span class="caps">Нашето вярване</span>
+      <h2 class="serif-caps quote" id="quote">Не е достатъчно само да създадеш дизайн</h2>
+      <div class="meta caps"><span>Студио Концепта</span><span>София</span></div>
+      <div class="glyphs"><span class="ring"></span><span class="ring"></span><span class="ring"></span></div>
+      <div class="thumb"><img src="img/bath-green.jpg" alt="3D проект: баня със зелени плочки, огледало и дъбов шкаф" loading="lazy"></div>
+      <p>Важното е да можеш да го реализираш. Студио за интериор и дизайн Концепта проектира в 3D и довежда всеки проект до готов дом: дневни, кухни, спални, бани и дрешници.</p>
+    </article>
+  </section>
+
+  <!-- 3 · 3D PROJECTS INDEX -->
+  <section class="index wrap" id="projects" aria-label="3D проекти">
+    <h2 id="bigword" aria-label="3D проекти">3D проекти</h2>
+    <div class="rule" id="rule"></div>
+    <div class="row">
+      <div class="links">
+        <a class="link-u" href="#gallery">Кухните това сте Вие</a>
+        <a class="link-u" href="#gallery">Сини акценти в бяло безвремие</a>
+        <a class="link-u" href="#gallery">Луксозен наем под Тепетата</a>
+      </div>
+      <div class="stamp" aria-hidden="true">Concepta</div>
+    </div>
+    <div class="rooms">
+      <a class="room" href="#gallery"><div class="caps"><span>Спалня</span><span class="arrow">↗</span></div><div class="ph"><img src="img/bedroom-pink.jpg" alt="3D проект: спалня с розова тапицирана спалня и дъбов гардероб" loading="lazy"></div></a>
+      <a class="room" href="#gallery"><div class="caps"><span>Дневна</span><span class="arrow">↗</span></div><div class="ph"><img src="img/render-living-yellow.jpg" alt="3D проект: дневна с жълт ъглов диван и отворена кухня" loading="lazy"></div></a>
+      <a class="room" href="#gallery"><div class="caps"><span>Баня</span><span class="arrow">↗</span></div><div class="ph"><img src="img/bath-white.jpg" alt="3D проект: бяла баня с двоен умивалник и стъклен душ" loading="lazy"></div></a>
+    </div>
+  </section>
+
+  <!-- 4 · GALLERY RAIL -->
+  <section class="gallery" id="gallery" aria-label="Галерия">
+    <div class="wrap">
+      <div class="head">
+        <h2 class="serif-caps">Галерия</h2>
+        <div class="ctrls">
+          <button id="prev" aria-label="Предишен"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M10 3 5 8l5 5"/></svg></button>
+          <button id="next" aria-label="Следващ"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="m6 3 5 5-5 5"/></svg></button>
+        </div>
+      </div>
+      <div class="rail" id="rail" aria-roledescription="carousel">
+        <div class="track" id="track">
+          <figure class="slide" style="margin:0"><div class="ph"><img src="img/bath-green.jpg" alt="Баня в зелено"></div><figcaption class="cap"><span class="link-u">Баня в зелено</span><span class="caps">3D</span></figcaption></figure>
+          <figure class="slide" style="margin:0"><div class="ph"><img src="img/laundry-shower.jpg" alt="Душ и перално помещение"></div><figcaption class="cap"><span class="link-u">Душ и перално</span><span class="caps">3D</span></figcaption></figure>
+          <figure class="slide" style="margin:0"><div class="ph"><img src="img/hero-dining.jpg" alt="Трапезария с жълти столове"></div><figcaption class="cap"><span class="link-u">Трапезария</span><span class="caps">Реализиран</span></figcaption></figure>
+          <figure class="slide" style="margin:0"><div class="ph"><img src="img/dressing-pink.jpg" alt="Дрешник с тоалетка"></div><figcaption class="cap"><span class="link-u">Дрешник</span><span class="caps">3D</span></figcaption></figure>
+          <figure class="slide" style="margin:0"><div class="ph"><img src="img/render-tv-wall.jpg" alt="Дневна с бетонова стена"></div><figcaption class="cap"><span class="link-u">Дневна</span><span class="caps">3D</span></figcaption></figure>
+          <figure class="slide" style="margin:0"><div class="ph"><img src="img/hallway.jpg" alt="Антре с дъбови шкафове"></div><figcaption class="cap"><span class="link-u">Антре</span><span class="caps">3D</span></figcaption></figure>
+          <figure class="slide" style="margin:0"><div class="ph"><img src="img/bedroom-pink.jpg" alt="Спалня в розово"></div><figcaption class="cap"><span class="link-u">Спалня</span><span class="caps">3D</span></figcaption></figure>
+        </div>
+      </div>
+      <div class="progress"><i id="bar"></i></div>
+    </div>
+  </section>
+
+  <!-- 5 · STUDIO -->
+  <section class="studio wrap" aria-label="Студио">
+    <div class="grid">
+      <h2 class="serif-caps">Студио за интериор и дизайн Концепта</h2>
+      <div class="stat"><b data-count="16">16+</b><span class="caps">Години на пазара</span></div>
+      <div class="founders"><img src="img/founders.jpg" alt="Основателите на студио Концепта" loading="lazy"></div>
+      <div class="stat"><b data-count="100">100+</b><span class="caps">Проекта</span></div>
+    </div>
+  </section>
+
+  <!-- 6 · CONTACT -->
+  <section class="contact wrap" id="contact" aria-label="Контакти">
+    <h2 class="serif-caps">Контакти</h2>
+    <div class="cgrid">
+      <div><span class="caps">Телефони</span><div class="val">+359 897 809 305<br>+359 897 809 306</div></div>
+      <div><span class="caps">Имейл</span><div class="val" id="mail">concepta.interior@gmail.com</div><button class="copy caps" id="copy">Копирай имейла</button></div>
+      <div><span class="caps">Адрес</span><div class="val">гр. София, кв. Лозенец,<br>ул. Капитан Андреев 29</div></div>
+    </div>
+    <div class="foot caps">
+      <a class="logo" href="#top" aria-label="Към началото"><svg viewBox="0 0 236 76" aria-hidden="true"><use href="#mark"/></svg></a>
+      <span>© 2026 ConceptaBG</span>
+      <a href="#top">Начало ↑</a>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = s => document.querySelector(s);
+
+  /* Spring with Apple's designer parameters: damping ratio + response (s). Interruptible, carries velocity. */
+  class Spring {
+    constructor(value, { damping = 1, response = .4 } = {}) { this.x = value; this.v = 0; this.target = value; this.set(damping, response); }
+    set(damping, response) { this.k = Math.pow(2 * Math.PI / response, 2); this.c = 4 * Math.PI * damping / response; }
+    step(dt) {
+      const steps = Math.ceil(dt / (1 / 240)), h = dt / steps;
+      for (let i = 0; i < steps; i++) { const a = -this.k * (this.x - this.target) - this.c * this.v; this.v += a * h; this.x += this.v * h; }
+      if (Math.abs(this.v) < .01 && Math.abs(this.x - this.target) < .01) { this.x = this.target; this.v = 0; return false; }
+      return true;
+    }
+  }
+
+  /* wordmark letters, staggered */
+  const wm = $('#wordmark');
+  wm.innerHTML = [...'CONCEPTA'].map((c, i) => `<span class="l" style="animation-delay:${.45 + i * .045}s">${c}</span>`).join('') + '<sup>®</sup>';
+
+  /* nav goes translucent once it leaves the hero */
+  const nav = $('#nav');
+  const heroImg = $('#heroImg');
+  const pars = [...document.querySelectorAll('[data-parallax] img')];
+
+  /* quote words light up at reading pace */
+  const quote = $('#quote');
+  quote.innerHTML = quote.textContent.split(' ').map(w => `<span class="w">${w}</span>`).join(' ');
+  const words = [...quote.querySelectorAll('.w')];
+
+  /* 3D ПРОЕКТИ letters drift apart then settle as the section arrives */
+  const big = $('#bigword');
+  big.innerHTML = [...big.textContent].map(c => c === ' ' ? ' ' : `<span class="ch">${c}</span>`).join('');
+  const chars = [...big.querySelectorAll('.ch')];
+  const rule = $('#rule');
+
+  const vh = () => innerHeight;
+  function onScroll() {
+    const y = scrollY;
+    nav.classList.toggle('solid', y > vh() * .5);
+    if (reduce) { words.forEach(w => w.classList.add('on')); return; }
+    heroImg.style.transform = `translateY(${y * .18}px) scale(${1.04 + y * .00008})`;
+    wm.style.transform = `translateY(${-y * .12}px)`;
+    pars.forEach(img => {
+      const r = img.parentElement.getBoundingClientRect();
+      const p = (r.top + r.height / 2 - vh() / 2) / vh();
+      img.style.transform = `translateY(${p * -6}%)`;
+    });
+    const qr = quote.getBoundingClientRect();
+    const qp = Math.min(1, Math.max(0, (vh() * .85 - qr.top) / (vh() * .5)));
+    words.forEach((w, i) => w.classList.toggle('on', i < Math.round(qp * words.length + .001) || qp >= 1));
+    const br = big.getBoundingClientRect();
+    const bp = Math.min(1, Math.max(0, (vh() - br.top) / (vh() * .7)));
+    const spread = (1 - bp);
+    chars.forEach((ch, i) => { const d = i - (chars.length - 1) / 2; ch.style.transform = `translateX(${d * spread * 1.6}vw)`; });
+    rule.style.transform = `scaleX(${.15 + bp * .85})`;
+  }
+  addEventListener('scroll', () => requestAnimationFrame(onScroll), { passive: true });
+  addEventListener('resize', onScroll);
+  onScroll();
+
+  /* count-up when the stats come into view */
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting || reduce) return;
+    io.unobserve(e.target);
+    const el = e.target, to = +el.dataset.count, t0 = performance.now(), d = 1400;
+    const tick = t => { const p = Math.min(1, (t - t0) / d), k = 1 - Math.pow(1 - p, 4); el.textContent = Math.round(to * k) + '+'; if (p < 1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  }), { threshold: .6 });
+  document.querySelectorAll('[data-count]').forEach(el => io.observe(el));
+
+  /* ---------- gallery rail: 1:1 drag, velocity hand-off, momentum projection, rubber band, snap ---------- */
+  const rail = $('#rail'), track = $('#track'), bar = $('#bar');
+  const slides = [...track.children];
+  const spring = new Spring(0, { damping: 1, response: .45 });
+  let min = 0, snaps = [0], raf = 0, last = 0;
+  function measure() {
+    const gap = parseFloat(getComputedStyle(track).gap) || 0;
+    min = Math.min(0, rail.clientWidth - track.scrollWidth);
+    snaps = slides.map(s => Math.max(min, -s.offsetLeft)).filter((v, i, a) => a.indexOf(v) === i);
+    if (!snaps.includes(min)) snaps.push(min);
+    spring.target = clamp(spring.target); spring.x = clamp(spring.x); render();
+  }
+  const clamp = x => Math.max(min, Math.min(0, x));
+  const rubber = (over, dim, c = .55) => (over * dim * c) / (dim + c * Math.abs(over));
+  const project = (v, d = .998) => (v / 1000) * d / (1 - d);
+  const nearest = x => snaps.reduce((a, b) => Math.abs(b - x) < Math.abs(a - x) ? b : a, snaps[0]);
+  function render() {
+    track.style.transform = `translate3d(${spring.x}px,0,0)`;
+    const p = min ? spring.x / min : 0;
+    bar.style.left = `${Math.max(0, Math.min(1, p)) * 82}%`;
+  }
+  function loop(t) {
+    const dt = Math.min(.032, (t - last) / 1000 || .016); last = t;
+    const moving = spring.step(dt); render();
+    raf = moving ? requestAnimationFrame(loop) : 0;
+  }
+  function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); } }
+  function go(target, v = 0, bouncy = false) {
+    spring.set(bouncy ? .82 : 1, bouncy ? .42 : .45);
+    spring.target = target; spring.v = v;
+    if (reduce) { spring.x = target; spring.v = 0; render(); return; }
+    kick();
+  }
+
+  let drag = null;
+  rail.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    cancelAnimationFrame(raf); raf = 0;             // grab mid-flight: start from the live value
+    drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, start: spring.x, hist: [{ x: e.clientX, t: e.timeStamp }], axis: null };
+  });
+  rail.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+    if (!drag.axis) {
+      if (Math.hypot(dx, dy) < 8) return;           // hysteresis before committing to a direction
+      drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (drag.axis === 'x') { rail.setPointerCapture(e.pointerId); rail.classList.add('dragging'); }
+    }
+    if (drag.axis !== 'x') return;
+    let x = drag.start + dx;
+    if (x > 0) x = rubber(x, rail.clientWidth);
+    else if (x < min) x = min + rubber(x - min, rail.clientWidth);
+    spring.x = x; spring.target = x; spring.v = 0; render();
+    drag.hist.push({ x: e.clientX, t: e.timeStamp }); if (drag.hist.length > 6) drag.hist.shift();
+  });
+  const end = e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null; rail.classList.remove('dragging');
+    if (d.axis !== 'x') { go(nearest(spring.x)); return; }
+    const a = d.hist[0], b = d.hist[d.hist.length - 1];
+    const v = b.t > a.t ? (b.x - a.x) / ((b.t - a.t) / 1000) : 0;   // px/s
+    const target = nearest(clamp(spring.x + project(v)));
+    go(target, v, Math.abs(v) > 300);
+  };
+  rail.addEventListener('pointerup', end);
+  rail.addEventListener('pointercancel', end);
+  rail.addEventListener('click', e => { if (Math.abs(spring.v) > 5) e.preventDefault(); }, true);
+
+  const stepTo = dir => {
+    const i = snaps.indexOf(nearest(spring.target));
+    go(snaps[Math.max(0, Math.min(snaps.length - 1, i + dir))]);
+  };
+  $('#prev').addEventListener('click', () => stepTo(-1));
+  $('#next').addEventListener('click', () => stepTo(1));
+  rail.tabIndex = 0;
+  rail.addEventListener('keydown', e => { if (e.key === 'ArrowRight') stepTo(1); if (e.key === 'ArrowLeft') stepTo(-1); });
+  addEventListener('resize', measure);
+  addEventListener('load', measure);
+  measure();
+
+  /* copy email */
+  $('#copy').addEventListener('click', async e => {
+    const btn = e.currentTarget, text = $('#mail').textContent;
+    try { await navigator.clipboard.writeText(text); btn.textContent = 'Копирано'; }
+    catch { const r = document.createRange(); r.selectNodeContents($('#mail')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Маркирано, натиснете Ctrl+C'; }
+    setTimeout(() => btn.textContent = 'Копирай имейла', 2200);
+  });
+})();
+</script>
