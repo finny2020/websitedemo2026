@@ -11,6 +11,8 @@ import { MarchingCubes } from "../vendor/addons/MarchingCubes.js";
 import { Font } from "../vendor/addons/FontLoader.js";
 
 const WI = window.__wi || {};
+/* "#avatar": a render mode for brand stills. Smooth, puffy glass type and Blot over a soft colour field; nothing else. */
+const AVATAR = location.hash === "#avatar";
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -87,7 +89,9 @@ async function boot() {
       x += g.ha / font.data.resolution + ls;
     }
     const geos = shapes.map(sh => {
-      const geo = new THREE.ExtrudeGeometry(sh, { depth: .07, curveSegments: 10, bevelEnabled: true, bevelThickness: .016, bevelSize: .0065, bevelSegments: 5 });
+      const geo = new THREE.ExtrudeGeometry(sh, AVATAR
+        ? { depth: .05, curveSegments: 28, bevelEnabled: true, bevelThickness: .034, bevelSize: .011, bevelSegments: 14 }
+        : { depth: .07, curveSegments: 18, bevelEnabled: true, bevelThickness: .016, bevelSize: .0065, bevelSegments: 8 });
       geo.translate(sh._dx, 0, -.035);
       return geo;
     });
@@ -124,12 +128,20 @@ async function boot() {
     item.mesh.scale.set(fs, fs, fs);
     item.mesh.position.set(r.left - W / 2, H / 2 - base, item.z || 0);
     item.mesh.rotation.y = item.tilt ? item.tilt() : 0;
+    if (AVATAR && item.mat === glass) item.mesh.rotation.set(-.07, .12, 0);   // angle the glass so light sweeps across it
     item.mesh.visible = r.bottom > -fs && r.top < H + fs;
     return item.mesh.visible;
   }
-  addType($(".mega__line:first-child .mega__rise"), fontN);
-  addType($(".tittle-host"), fontI);
-  addType($(".mega__rise--2 > .chrome:not(.tittle-host)"), fontI);
+  const glass = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff, metalness: 0, roughness: 0, transmission: 1, thickness: 10, ior: 1.6, dispersion: 10,
+    iridescence: 1, iridescenceIOR: 2.1, iridescenceThicknessRange: [80, 1100], clearcoat: 1, clearcoatRoughness: 0,
+    specularIntensity: 1.6, envMapIntensity: 3.2, transparent: true
+  });
+  const heroType = AVATAR ? glass : chrome;
+  if (AVATAR) renderer.transmissionResolutionScale = 1;
+  addType($(".mega__line:first-child .mega__rise"), fontN, heroType);
+  addType($(".tittle-host"), fontI, heroType);
+  addType($(".mega__rise--2 > .chrome:not(.tittle-host)"), fontI, heroType);
   addType($(".archive__title em"), fontI);
   $$(".foot__word span:not(.sp)").forEach(s => addType(s, fontN));
   // a little life in the type: it turns a few degrees toward the pointer
@@ -186,6 +198,11 @@ async function boot() {
     const eye = new THREE.Mesh(eyeGeo, gloss); eye.scale.set(.2, .25, .1); eye.position.set(s * .36, -.05, .9); blot.add(eye);
     const p = new THREE.Mesh(eyeGeo, white); p.scale.set(.075, .075, .04); p.position.set(s * .36, -.03, 1.0); blot.add(p); pupils.push(p);
   });
+  if (AVATAR) {   // Blot in pink glass
+    drop.material = new THREE.MeshPhysicalMaterial({ color: 0xffb3e6, metalness: 0, roughness: .03, transmission: .9, thickness: 1.2, ior: 1.45,
+      attenuationColor: new THREE.Color(0xff5fcf), attenuationDistance: 1.6, iridescence: 1, iridescenceIOR: 1.7, iridescenceThicknessRange: [150, 800],
+      clearcoat: 1, envMapIntensity: 2, transparent: true });
+  }
   scene.add(blot);
   const mascotEl = $("#mascot");
 
@@ -400,6 +417,18 @@ async function boot() {
     return true;
   }
 
+  if (AVATAR) {
+    const c = document.createElement("canvas"); c.width = c.height = 1024;
+    const g = c.getContext("2d"); g.fillStyle = "#050505"; g.fillRect(0, 0, 1024, 1024);
+    [[300, 330, 300, "rgba(255,95,207,.9)"], [720, 400, 300, "rgba(122,107,255,.85)"], [470, 760, 300, "rgba(110,230,255,.7)"], [820, 800, 200, "rgba(198,255,26,.45)"], [560, 560, 120, "rgba(255,255,255,.35)"]]
+      .forEach(([x, y, r, col]) => { const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, col); rg.addColorStop(1, "rgba(5,5,5,0)"); g.fillStyle = rg; g.fillRect(0, 0, 1024, 1024); });
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+    const field = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+    scene.add(field);
+    const fit = () => { const r = $(".mega").getBoundingClientRect(), s2 = Math.max(r.width, r.height) * 1.5;
+      field.scale.set(s2, s2, 1); field.position.set(r.left + r.width / 2 - W / 2, H / 2 - (r.top + r.height / 2), -160); };
+    window.__fitField = fit;
+  }
   /* ---------- frame ---------- */
   let W = 0, H = 0;
   function resize() {
@@ -426,12 +455,13 @@ async function boot() {
     let any = false; typeItems.forEach(it => { if (syncType(it, W, H)) any = true; });
 
     syncPieces(dt);
+    if (window.__fitField) window.__fitField();
     syncLiquid(dt);
 
     // hero objects
     const hr = hero.getBoundingClientRect(), narrow = hr.width < 720;
-    blob.visible = star.visible = hook.visible = heroOn;
-    minis.forEach(m => m.visible = heroOn);
+    blob.visible = star.visible = hook.visible = heroOn && !AVATAR;
+    minis.forEach(m => m.visible = heroOn && !AVATAR);
     if (heroOn) {
       const cx = hr.left + hr.width * (narrow ? .5 : .64) - W / 2, cy = H / 2 - (hr.top + hr.height * (narrow ? .3 : .42));
       const size = narrow ? hr.width * 1.05 : Math.min(hr.width * .5, hr.height * .95);
