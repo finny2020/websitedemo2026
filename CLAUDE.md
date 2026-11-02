@@ -4,10 +4,12 @@
 - **Serif only:** Bodoni Moda (opsz 6–96, 400–900, italic). No sans-serif anywhere. Never use JetBrains Mono.
 - **No micro labels:** no small tracked uppercase text, eyebrows, kickers, `[ 01 ]` numbers, tags, hints, HUDs or meta lines.
   Keep text to the minimum: one line per section.
-- **Colour:** grounds are only black `#050505`, white paper `#F6F5F1`, fluorescent green `#C6FF1A`, fluorescent pink `#FF3EC8`.
+- **Colour:** grounds are only black `#050505`, white cotton paper (assets/paper.webp), fluorescent green `#C6FF1A`, and a
+  **dreamy pink** `#FF8AD8` washed with lavender, peach and sky (user asked for the pink to be dreamier).
   Light comes from chrome (`--chrome` gradient) and iridescence (pink, violet, sky, mint). **No orange. No red.**
 - **Sharp:** border-radius 0 everywhere, 1px hairlines.
-- **Texture/effects:** film grain, laid-paper texture on white, generated guilloche (banknote engraving) rosettes and bands,
+- **Texture/effects:** film grain, real cotton-paper scan on white, blind-embossed laurel seal ("W" / "Wet Ink"),
+  engraved double-rule frame with guilloche corner rosettes (banknote / 1890s letterhead references), generated guilloche (banknote engraving) rosettes and bands,
   chrome four-point sparkles, chrome text whose sheen follows the pointer, iridescent WebGL form in the hero.
 - **3D, not flat:** the blob, star, hook, glints, Blot and the "Wet ınk" / "Archive" / footer WET INK type are real 3D in
   js/scene3d.js (Three.js r170, vendored in vendor/; marching-cubes blob; extruded bevelled type from Bodoni Moda outlines in
@@ -23,14 +25,15 @@
 - Heavy layers (WebGL form, sparkles, rosette, archive field) only run while their section is on screen.
 
 ## Page structure
-Hero (black: iridescent form, guilloche, chrome star, "Wet ınk", "Marks that stay.") → Studio (white laid paper, one sentence,
-guilloche band) → Archive (black, abstract field: fragments of the work cut into shapes, blurred and washed in iridescence,
-focus on approach, click opens the detail sheet) → Services (fluo green, four words) → Contact (fluo pink) → footer (chrome WET INK).
+Hero (black: 3D iridescent blob, guilloche, puffy chrome star, "Wet ınk", "Marks that stay.") → Studio (cotton paper, engraved
+frame, embossed seal, one sentence, guilloche band) → Archive (black, one short strip of six tiles) → Services (fluo green, four words) → Contact (dreamy pink, heavier weight for legibility) → footer (chrome WET INK).
 
 ## Content
 - Instagram: @wetink.studio — https://www.instagram.com/wetink.studio/
 - Email shown: hello@wetink.studio (placeholder until confirmed).
-- Archive = client work only (images in assets/archive/): Escu & Co. website, Quiet Luxury / Loud Feet socks (interactive),
-  colour pencil boxes, Jus d'Art carton + label, Printing Studio postcard. Concept pieces were removed.
-  Never invent years, clients or details for client work.
-- Ink is a page-wide WebGL layer in fluo pink and green. Keep it smooth: threshold at full device resolution.
+- The studio is new and has no client portfolio. Archive = one short strip: the Quiet Luxury / Loud Feet socks (team's own
+  work, opens in the sheet) + five 3D concept studies drawn live in js/scene3d.js (Pearl, Orbit, Fuzz, Coral, Melt; drag to
+  spin), inspired by the user's moodboards. The team will make more concept pieces; swap studies in by adding a
+  `.piece[data-obj]` tile and a matching entry in `studies`. Escu & Co., pencil boxes, Jus d'Art and postcard were removed
+  at the user's request. Never present concept pieces as client work or invent clients.
+- Ink is a page-wide WebGL layer rendered as **glass** (clear body, refraction rim, thin-film rainbow, glints), pink and mint. Keep it smooth: threshold at full device resolution.

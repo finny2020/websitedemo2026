@@ -58,14 +58,25 @@
 
   <!-- STUDIO: one sentence on laid paper -->
   <section class="studio" id="studio" aria-label="Studio">
+    <!-- engraved frame with guilloche rosettes in the corners, after 19th-century banknotes and letterheads -->
+    <div class="frame" aria-hidden="true"><svg class="frame__rose" data-rose></svg><svg class="frame__rose" data-rose></svg><svg class="frame__rose" data-rose></svg><svg class="frame__rose" data-rose></svg></div>
+    <!-- blind-embossed seal: a laurel wreath round the monogram, pressed into the paper -->
+    <svg class="seal reveal" id="seal" viewBox="-200 -170 400 340" role="img" aria-label="Wet Ink seal"></svg>
     <p class="studio__line reveal">A studio for identity, print, packaging and&nbsp;the&nbsp;web. Drawn by hand, <em>finished like jewellery.</em></p>
     <svg class="gband" data-gband aria-hidden="true"></svg>
   </section>
 
-  <!-- ARCHIVE: fragments of the work, out of focus until you come close -->
+  <!-- ARCHIVE: one short row. Socks, then concept studies rendered in 3D (drag to spin). -->
   <section class="archive" id="archive" aria-labelledby="archiveTitle">
     <h2 class="archive__title reveal" id="archiveTitle"><em>Archive</em></h2>
-    <div class="field" id="field" role="list" aria-label="Selected work. Focus a fragment and press Enter to open it."></div>
+    <ul class="strip" aria-label="Archive">
+      <li><button class="piece piece--img reveal" type="button" data-open="0" aria-label="Quiet Luxury / Loud Feet. Open."><img src="assets/archive/loud-feet-sock.webp" alt="" draggable="false"><span class="piece__name">Loud Feet</span></button></li>
+      <li><div class="piece reveal" data-obj="pearl" role="img" aria-label="Pearl study, a 3D concept piece. Drag to turn it."><span class="piece__name">Pearl</span></div></li>
+      <li><div class="piece reveal" data-obj="orbit" role="img" aria-label="Glass orbit study, a 3D concept piece. Drag to turn it."><span class="piece__name">Orbit</span></div></li>
+      <li><div class="piece reveal" data-obj="fuzz" role="img" aria-label="Fuzz study, a 3D concept piece. Drag to turn it."><span class="piece__name">Fuzz</span></div></li>
+      <li><div class="piece reveal" data-obj="coral" role="img" aria-label="Coral study, a 3D concept piece. Drag to turn it."><span class="piece__name">Coral</span></div></li>
+      <li><div class="piece reveal" data-obj="melt" role="img" aria-label="Melt study, a 3D concept piece. Drag to turn it."><span class="piece__name">Melt</span></div></li>
+    </ul>
   </section>
 
   <!-- SERVICES: four words on fluorescent green -->
@@ -95,7 +106,7 @@
   </p>
 </footer>
 
-<!-- Detail sheet: grows out of the fragment you opened, drag it down to put it back -->
+<!-- Detail sheet: grows out of the piece you opened, drag it down to put it back -->
 <div class="scrim" id="scrim" hidden></div>
 <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
   <div class="sheet__handle" id="sheetHandle">

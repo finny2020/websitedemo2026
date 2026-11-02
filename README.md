@@ -19,11 +19,12 @@ laid paper, fluorescent green and fluorescent pink, with chrome and iridescent l
 1. **Hero:** an iridescent form (raymarched metaballs with a rainbow thin-film rim and grain) floating over a slowly
    turning guilloche rosette, a chrome four-point star and chrome sparkles. The pointer pulls the form; pressing makes it
    swell and throws sparkles. Chrome "Wet ınk" wordmark with Blot as the dot.
-2. **Studio:** one sentence on laid paper, then an engraved guilloche band.
-3. **Archive:** an abstract field. Fragments of the work, cut into stars, diamonds, slivers and arches, drift at different
-   depths, blurred and washed in iridescence. They come into focus as you approach; click to open the piece.
+2. **Studio:** cotton paper (`assets/paper.webp`), an engraved frame with guilloche corner rosettes, a blind-embossed
+   laurel seal, one sentence, then an engraved band.
+3. **Archive:** one short strip: the Loud Feet socks (opens the interactive socks) and five 3D concept studies
+   (Pearl, Orbit, Fuzz, Coral, Melt) you can drag to spin.
 4. **Services:** four words on fluorescent green; black ink floods a row from where you enter.
-5. **Contact:** fluorescent pink, tap-to-copy email and Instagram.
+5. **Contact:** dreamy pink, tap-to-copy email and Instagram.
 
 Interactions run on springs (`js/main.js`); reduced motion, reduced transparency and more contrast are handled.
 

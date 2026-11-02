@@ -128,10 +128,11 @@
   };
 
   /* ============================================================ ink layer
-     WebGL metaballs over the whole page, in two inks (black, Riso orange).
-     Pass 1 adds soft gaussian sprites into a half-resolution field (R = black, G = orange).
+     WebGL metaballs over the whole page, rendered as glass: a dreamy pink and a mint-lime glass ink.
+     Pass 1 adds soft gaussian sprites into a half-resolution field (R = mint, G = pink).
      Pass 2 runs at full device resolution and thresholds the bilinearly filtered field with
-     smoothstep, so edges are smooth curves instead of pixels. The field's slope gives a wet sheen. */
+     smoothstep, so edges are smooth curves. The field's slope is the surface normal: it drives the
+     refraction rim, the thin-film rainbow and two glints. */
   const ink = (() => {
     const cv = document.createElement("canvas");
     cv.className = "ink-layer"; cv.setAttribute("aria-hidden", "true");
@@ -152,32 +153,39 @@
       uniform vec2 u_view; varying vec2 v_uv; varying vec2 v_amt;
       void main() { vec2 c = a_pos / u_view * 2.0 - 1.0; gl_Position = vec4(c.x, -c.y, 0.0, 1.0); v_uv = a_uv; v_amt = a_amt; }`, `
       precision mediump float; varying vec2 v_uv; varying vec2 v_amt;
-      void main() { float d2 = dot(v_uv, v_uv); float a = exp(-4.0 * d2) * step(d2, 1.0); gl_FragColor = vec4(v_amt * a, 0.0, 0.0); }`);
+      void main() { float d2 = dot(v_uv, v_uv); float a = exp(-3.2 * d2) * step(d2, 1.0); gl_FragColor = vec4(v_amt * a, 0.0, 0.0); }`);
     const comp = prog(`
       attribute vec2 a_pos; varying vec2 v_uv;
       void main() { v_uv = a_pos * 0.5 + 0.5; gl_Position = vec4(a_pos, 0.0, 1.0); }`, `
       precision highp float;
       uniform sampler2D u_f; uniform vec2 u_px; varying vec2 v_uv;
-      const float T = 0.36; const float W = 0.022;
-      const vec3 BLACK = vec3(0.776, 1.0, 0.102);  const vec3 BLACK_RIM = vec3(0.45, 0.62, 0.0);   /* fluo green */
-      const vec3 ORANGE = vec3(1.0, 0.243, 0.784); const vec3 ORANGE_RIM = vec3(0.68, 0.06, 0.5);  /* fluo pink */
+      const float T = 0.30; const float W = 0.03;
+      /* glass inks: a faint tint inside, a refractive rim, a thin-film rainbow edge and bright glints */
+      const vec3 TINT_A = vec3(0.86, 1.0, 0.78);   /* channel r: mint-lime glass */
+      const vec3 TINT_B = vec3(1.0, 0.80, 0.95);   /* channel g: dreamy pink glass */
       float sum(vec2 uv) { vec2 f = texture2D(u_f, uv).rg; return f.r + f.g; }
+      vec3 film(float x) { return 0.55 + 0.45 * cos(6.2831 * (x + vec3(0.0, 0.33, 0.67))); }
       void main() {
         vec2 f = texture2D(u_f, v_uv).rg;
-        float kb = smoothstep(T - W, T + W, f.r);
-        float ko = smoothstep(T - W, T + W, f.g);
-        float a = kb + ko * (1.0 - kb);
-        if (a < 0.002) { gl_FragColor = vec4(0.0); return; }
-        vec3 cb = mix(BLACK_RIM, BLACK, smoothstep(T, T + 0.2, f.r));
-        vec3 co = mix(ORANGE_RIM, ORANGE, smoothstep(T, T + 0.2, f.g));
-        vec3 col = (cb * kb + co * ko * (1.0 - kb)) / a;
+        float s = f.r + f.g;
+        float m = smoothstep(T - W, T + W, s);
+        if (m < 0.002) { gl_FragColor = vec4(0.0); return; }
+        vec3 tint = mix(TINT_A, TINT_B, f.g / max(s, 1e-4));
         float sx = sum(v_uv + vec2(u_px.x, 0.0)) - sum(v_uv - vec2(u_px.x, 0.0));
         float sy = sum(v_uv + vec2(0.0, u_px.y)) - sum(v_uv - vec2(0.0, u_px.y));
-        vec3 n = normalize(vec3(-sx * 5.0, -sy * 5.0, 1.0));
-        vec3 L = normalize(vec3(-0.45, 0.55, 0.7));
-        float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 30.0);
-        float core = smoothstep(T + 0.04, T + 0.3, f.r + f.g);
-        col += spec * 0.5 * core;
+        vec3 n = normalize(vec3(-sx * 3.0, -sy * 3.0, 1.0));
+        float depth = smoothstep(T, T + 0.55, s);            /* 0 at the edge, 1 in the thick middle */
+        float rim = 1.0 - depth;
+        float fres = pow(1.0 - n.z, 1.5);
+        vec3 L = normalize(vec3(-0.45, 0.6, 0.66)), L2 = normalize(vec3(0.6, -0.3, 0.75));
+        float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 60.0);
+        float spec2 = pow(max(dot(reflect(-L2, n), vec3(0.0, 0.0, 1.0)), 0.0), 24.0) * 0.35;
+        float edge = m - smoothstep(T + W, T + 0.07, s);     /* the dark refraction line at the very edge */
+        vec3 col = tint * (0.55 + 0.45 * depth);
+        col = mix(col, film(fres * 1.6 + n.x * 0.4 + n.y * 0.25), clamp(fres * 1.1, 0.0, 0.75));
+        col = mix(col, tint * 0.35, edge * 0.55);
+        col += vec3(1.0) * (spec + spec2);
+        float a = m * clamp(0.16 + rim * 0.38 + fres * 0.55 + edge * 0.45 + spec, 0.0, 1.0);
         gl_FragColor = vec4(col * a, a);
       }`);
 
@@ -236,7 +244,7 @@
         p.age += dt;
         if (p.age >= p.life) { parts.splice(i, 1); continue; }
         p.x += p.vx * dt; p.y += p.vy * dt;                       // paper soaks the ink up
-        p.vx *= Math.pow(.02, dt); p.vy *= p.drip ? Math.pow(.55, dt) : Math.pow(.02, dt);
+        p.vx *= Math.pow(.06, dt); p.vy *= p.drip ? Math.pow(.6, dt) : Math.pow(.06, dt);   // glass ink glides a little further
         if (p.drip && p.vy > 8 && Math.random() < .6 && parts.length < MAX - 4) {
           parts.push({ x: p.x + (Math.random() - .5) * 2, y: p.y, r: p.r * .8, tr: p.tr * (.75 + Math.random() * .2), life: 4 + Math.random() * 2, vx: 0, vy: 0, age: 0, grow: 1.2, c: p.c });
         }
@@ -331,8 +339,8 @@
       const speed = clamp(dist / 40, 0, 1);   // fast strokes lay thinner ink, like a dragged brush
       const n = Math.min(12, Math.ceil(dist / 8));   // fill the gap between events so the line stays continuous
       for (let i = 1; i <= n; i++) {
-        ink.spawn({ x: lastTrail.x + dx * i / n, y: lastTrail.y + dy * i / n, r: 4, tr: lerp(16, 7, speed),
-                    life: 1.9 + Math.random() * .6, vx: dx * .3, vy: dy * .3, c: trailInk });
+        ink.spawn({ x: lastTrail.x + dx * i / n, y: lastTrail.y + dy * i / n, r: 6, tr: lerp(22, 10, speed),
+                    life: 2.6 + Math.random() * .8, vx: dx * .3, vy: dy * .3, c: trailInk });
       }
     }
     lastTrail = { x, y };
@@ -502,6 +510,40 @@
     const p = document.createElementNS(SVGNS, "path"); p.setAttribute("d", d); svg.appendChild(p);
   }
   rosette($("#rosette"));
+  // small corner rosettes for the engraved frame
+  $$("[data-rose]").forEach(svg => {
+    svg.setAttribute("viewBox", "-120 -120 240 240");
+    let d = "";
+    [[104, 12, 18, 16], [76, 10, 13, 14], [48, 8, 9, 12], [22, 6, 6, 8]].forEach(([R, A, k, n]) => {
+      for (let j = 0; j < n; j++) { const ph = j * Math.PI * 2 / (n * k);
+        for (let s2 = 0; s2 <= 240; s2++) { const t = s2 / 240 * Math.PI * 2, r = R + A * Math.sin(k * t + ph * k);
+          d += (s2 ? "L" : "M") + (r * Math.cos(t)).toFixed(1) + " " + (r * Math.sin(t)).toFixed(1); } }
+    });
+    const p = document.createElementNS(SVGNS, "path"); p.setAttribute("d", d); svg.appendChild(p);
+  });
+  // the embossed seal: two laurel branches round a monogram, with the name beneath
+  (function seal(svg) {
+    if (!svg) return;
+    let leaves = "";
+    [-1, 1].forEach(side => {
+      for (let i = 0; i < 9; i++) {
+        const t = .2 + i / 9 * .72, a = Math.PI / 2 + side * (Math.PI * .1 + t * Math.PI * .78);
+        const R = 132, x = Math.cos(a) * R, y = Math.sin(a) * R * .92 + 6;
+        const rot = a * 180 / Math.PI + (side > 0 ? 90 : -90) + side * 28, s = .8 - i * .03;
+        [-1, 1].forEach(off => {
+          leaves += `<ellipse cx="${(x + Math.cos(a) * off * 15).toFixed(1)}" cy="${(y + Math.sin(a) * off * 15).toFixed(1)}" rx="${(7 * s).toFixed(1)}" ry="${(20 * s).toFixed(1)}" transform="rotate(${(rot + off * side * 34).toFixed(1)} ${(x + Math.cos(a) * off * 15).toFixed(1)} ${(y + Math.sin(a) * off * 15).toFixed(1)})"/>`;
+        });
+      }
+      // stem
+      let d = "";
+      for (let i = 0; i <= 40; i++) { const t = .14 + i / 40 * .8, a = Math.PI / 2 + side * (Math.PI * .1 + t * Math.PI * .78);
+        d += (i ? "L" : "M") + (Math.cos(a) * 132).toFixed(1) + " " + (Math.sin(a) * 132 * .92 + 6).toFixed(1); }
+      leaves += `<path d="${d}" fill="none" stroke-width="3.5"/>`;
+    });
+    svg.innerHTML = `<g class="seal__press">${leaves}
+      <text x="0" y="44" text-anchor="middle" class="seal__w">W</text>
+      <text x="0" y="128" text-anchor="middle" class="seal__name">Wet Ink</text></g>`;
+  })($("#seal"));
   $$("[data-gband]").forEach(band);
   // the rings turn against each other, very slowly, only while the hero is on screen
   const ringEls = $$("#rosette .ring");
@@ -595,102 +637,17 @@
 
   /* ============================================================ archive data */
   const ARCHIVE = [
-    { kind: "Website", client: true, title: "Escu & Co.", url: "escufin.com", tags: ["Finance", "Website", "EN / FR"],
-      images: [
-        { src: IMG + "escufin-1.webp", alt: "Escu & Co. homepage: a serif headline, 'The opportunities that reshape markets are rarely obvious.', over a dark navy background with a dotted horizon." },
-        { src: IMG + "escufin-2.webp", alt: "Track record section: a large '15+', 'Years connecting international businesses across industries and markets', and a line-drawn classical column." },
-        { src: IMG + "escufin-3.webp", alt: "What we do section on a paper-toned background: Identify, Structure, Build, each with a fine line icon and a short description." }
-      ],
-      text: "Website for Escu &amp; Co., a European consultancy and financial management firm. Dark navy and quiet: a serif headline over a dotted horizon, a line-drawn column for the track record, and a paper-toned section for what they do. In English and French.",
-      link: "https://www.escufin.com/" },
-    { kind: "Product", client: true, site: "socks", title: "Quiet Luxury / Loud Feet", tags: ["Product", "Illustration", "Interactive"],
+    { kind: "Product", site: "socks", title: "Quiet Luxury / Loud Feet",
       images: [{ src: IMG + "loud-feet-sock.webp", alt: "A cream Loud Feet sock on a wooden peg, with red lettering and a blue smiling pearl in an oyster." }],
       text: "A pair of cream socks. The left one reads Quiet Luxury with a smiling champagne coupe; the right one reads Loud Feet with a smiling pearl in an oyster.",
-      tryIt: "Grab a sock on the line and set it swinging." },
-    { kind: "Packaging", client: true, title: "Colour Pencil Boxes", tags: ["Packaging", "Illustration", "Print"],
-      bg: "#E9DCC6", fit: "contain",
-      images: [{ src: IMG + "crayons.webp", alt: "Four colour-pencil boxes on a wooden table, each sleeve with one flat illustration: a red tulip on yellow, a crescent moon over green hills, a bluebird on pink, and two orange quilt stars on green." }],
-      text: "A set of four pencil sleeves. Each carries one flat illustration (a tulip, a night sky, a bluebird and quilt stars) and its own patterned spine, so the boxes read as a family on a shelf." },
-    { kind: "Packaging", client: true, title: "Jus d'Art", tags: ["Packaging", "Label", "Identity"],
-      bg: "#B6B5FF", fit: "contain",
-      images: [{ src: IMG + "jus-dart-carton.webp", alt: "Tall Jus d'Art juice carton with a bent blue straw on a lavender background. The top flap reads Art Juice, with Jus d'Art printed upside down beneath it; below, a red line-drawn apple and 'Jus de pomme, pressé à froid, sans sucre ajouté'." },
-               { src: IMG + "jus-dart-label.webp", alt: "Flat Jus d'Art label: Art Juice and an upside-down Jus d'Art at the top, a red outline apple with coloured dots, a 'pomme + rien' badge, a 'restez curieux' tag, 'Jus de pomme, pressé à froid, sans sucre ajouté' and 200 mL." }],
-      text: "Carton and label for Art Juice's cold-pressed apple juice. The top flap carries the name twice, once upside down; below, one red line-drawn apple, a \u201cpomme + rien\u201d badge and the line \u201crestez curieux\u201d." },
-    { kind: "Postcard", client: true, title: "Printing Studio Postcard", tags: ["Die-cut", "Illustration", "Print"],
-      bg: "#5367D1", fit: "contain",
-      images: [{ src: IMG + "postcard.webp", alt: "Die-cut postcard shaped like a printing-studio shopfront: green front with a striped awning, pink back reading 'print with us and be remembered'." }],
-      text: "A die-cut postcard cut to the outline of the shop. The front is the shopfront; the back says “print with us and be remembered” and leaves room for a stamp." }
+      tryIt: "Grab a sock on the line and set it swinging." }
   ];
 
   const siteMarkup = it => SITES[it.site].frame === false ? SITES[it.site].html() : browser(SITES[it.site].url, SITES[it.site].html());
-  /* ============================================================ archive: an abstract field
-     Fragments of the real work, cut into sharp shapes, blurred and washed in iridescence, drifting at
-     different depths. Nothing is labelled until you come close: each fragment's focus is a spring driven by
-     the pointer's distance. Click a fragment to open the piece. Touch: first tap focuses, second opens. */
-  const FRAGS = [
-    { i: 0, src: IMG + "escufin-1.webp", shape: "rect",    x: .50, y: .10, w: .30, ar: 1.6,  z: .6 },
-    { i: 2, src: IMG + "crayons.webp",   shape: "star",    x: .16, y: .14, w: .24, ar: 1,    z: .9 },
-    { i: 0, src: IMG + "escufin-2.webp", shape: "sliver",  x: .06, y: .56, w: .17, ar: .72,  z: .35 },
-    { i: 3, src: IMG + "jus-dart-carton.webp", shape: "rect", x: .36, y: .52, w: .13, ar: .56, z: .5 },
-    { i: 1, src: IMG + "loud-feet-sock.webp",  shape: "arch", x: .75, y: .44, w: .11, ar: .42, z: .85 },
-    { i: 4, src: IMG + "postcard.webp",  shape: "diamond", x: .54, y: .64, w: .2,  ar: 1,    z: .7 },
-    { i: 3, src: IMG + "jus-dart-label.webp",  shape: "sliver", x: .88, y: .08, w: .09, ar: .38, z: .25 },
-    { i: 0, src: IMG + "escufin-3.webp", shape: "star",    x: .86, y: .74, w: .12, ar: 1,    z: .45 },
-    { i: 2, src: IMG + "crayons.webp",   shape: "diamond", x: .24, y: .80, w: .1,  ar: 1,    z: .3 }
-  ];
-  const field = $("#field");
-  field.innerHTML = FRAGS.map((f, n) => `<button class="frag frag--${f.shape}" type="button" role="listitem" data-n="${n}" aria-label="${ARCHIVE[f.i].title}">
-      <span class="frag__cut"><img src="${f.src}" alt="" draggable="false" loading="lazy"></span>
-      <span class="frag__name" aria-hidden="true">${ARCHIVE[f.i].title}</span></button>`).join("");
-  const fragEls = $$(".frag", field);
-  const focusS = FRAGS.map(() => new Spring(0, { damping: 1, response: .45, precision: .003 }));
-  const par = { x: new Spring(0, { damping: 1, response: 1, precision: .05 }), y: new Spring(0, { damping: 1, response: 1, precision: .05 }) };
-  let FW = 0, FH = 0, fieldOn = false, fieldT = 0, tapped = -1, kbd = -1;
-  function layoutField() {
-    FW = field.clientWidth; FH = field.clientHeight;
-    const narrow = FW < 720;
-    fragEls.forEach((el, n) => {
-      const f = FRAGS[n], w = Math.min(FW * f.w * (narrow ? 1.9 : 1), narrow ? FW * .6 : 520);
-      el.style.width = w + "px"; el.style.height = w / f.ar + "px";
-      f.px = clamp(f.x * FW, 0, FW - w); f.py = clamp(f.y * FH, 0, FH - w / f.ar - 30); f.pw = w; f.ph = w / f.ar;
-    });
-  }
-  function fieldTask(dt) {
-    if (!fieldOn) return false;
-    if (!reduced) fieldT += dt;
-    const r = field.getBoundingClientRect();
-    if (ptr.has && !reduced) { par.x.to((ptr.x - r.left - FW / 2) / FW); par.y.to((ptr.y - r.top - FH / 2) / FH); }
-    par.x.step(dt); par.y.step(dt);
-    fragEls.forEach((el, n) => {
-      const f = FRAGS[n];
-      const ox = Math.sin(fieldT * (.25 + f.z * .2) + n * 1.7) * 14 * f.z - par.x.value * 60 * f.z;
-      const oy = Math.cos(fieldT * (.2 + f.z * .15) + n) * 18 * f.z - par.y.value * 40 * f.z;
-      let target = 0;
-      if (tapped === n || kbd === n) target = 1;
-      else if (finePointer && ptr.has) {
-        const cx = r.left + f.px + ox + f.pw / 2, cy = r.top + f.py + oy + f.ph / 2;
-        const d = Math.hypot(ptr.x - cx, ptr.y - cy), R = Math.max(160, Math.max(f.pw, f.ph) * .75);
-        target = clamp(1.25 - d / R, 0, 1);
-      }
-      focusS[n].to(target); focusS[n].step(dt);
-      el.style.setProperty("--f", focusS[n].value.toFixed(3));
-      el.style.zIndex = Math.round(f.z * 10 + focusS[n].value * 20);
-      el.style.transform = `translate3d(${(f.px + ox).toFixed(1)}px, ${(f.py + oy).toFixed(1)}px, 0) scale(${(1 + focusS[n].value * .06).toFixed(3)})`;
-    });
-    return true;
-  }
-  layoutField(); addEventListener("resize", layoutField);
-  new IntersectionObserver(([en]) => { fieldOn = en.isIntersecting; if (fieldOn) animate(fieldTask); }).observe(field);
-  fragEls.forEach((el, n) => {
-    el.addEventListener("pointerup", e => { if (e.pointerType === "touch") el.dataset.touch = "1"; });
-    el.addEventListener("click", () => {
-      const touch = el.dataset.touch === "1"; delete el.dataset.touch;
-      if (touch && tapped !== n) { tapped = n; animate(fieldTask); return; }   // first tap brings it into focus
-      openSheet(FRAGS[n].i, el);
-    });
-    el.addEventListener("focus", () => { kbd = n; animate(fieldTask); });
-    el.addEventListener("blur", () => { if (kbd === n) kbd = -1; });
-  });
+  /* ============================================================ archive strip
+     One short row: the socks, then five concept studies. The studies are real 3D objects drawn by
+     js/scene3d.js into their tiles (drag to spin them); the socks open in the detail sheet. */
+  $$(".piece[data-open]").forEach(el => el.addEventListener("click", () => openSheet(+el.dataset.open, el)));
 
   /* ============================================================ detail sheet
      Opens out of the piece you tapped (anchored origin) and goes back into it when closed.
@@ -775,7 +732,7 @@
     sheetBody.innerHTML = "";
     closing = false;
     open.jump(0); dragY.jump(0);
-    (opener && opener.focus ? opener : $(".frag")).focus({ preventScroll: true });
+    (opener && opener.focus ? opener : $(".piece")).focus({ preventScroll: true });
   }
   $("#sheetClose").addEventListener("click", closeSheet);
   scrim.addEventListener("click", closeSheet);
@@ -923,6 +880,6 @@
   }
   addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
   addEventListener("resize", () => { setActive(active, true); onScroll(); });
-  document.fonts && document.fonts.ready.then(() => { setActive(active, true); layoutField(); });
+  document.fonts && document.fonts.ready.then(() => { setActive(active, true); });
   onScroll();
 })();
