@@ -8,37 +8,21 @@ css/style.css   design tokens + all styles
 js/main.js      interactions (ink canvas, mascot, scroll story, work list, archive wheel)
 ```
 
-## Identity
+## Direction
 
-Built from three moodboard references: Art_Pill (dark 3D chapter, exploded disc stack, 3D project
-carousel), Daniele Buffa's "Design is Funny" (huge grotesk, playful type), and Project Yuli
-(paper stock, mascot, quoted labels).
+Minimal luxury tech with a 19th-century engraved-paper feeling. Serif only (Bodoni Moda), sharp corners, black, white
+laid paper, fluorescent green and fluorescent pink, with chrome and iridescent light.
 
-- **Concept:** ink that is still wet. It spreads, pools, runs down the page and dries.
-- **Colour:** greige stock, process black as the main colour, Riso orange as a sparing accent.
-- **Type:** Archivo (variable width) and Instrument Serif italic. Fraunces appears only inside archive mock-ups.
-- **Mascot:** "Blot", the orange ink drop that is the dot of the ı in "ink". It is also the logo
-  and the falling drop in the process chapter.
+1. **Hero:** an iridescent WebGL form (raymarched metaballs with a rainbow thin-film rim and grain) floating over a slowly
+   turning guilloche rosette, a chrome four-point star and chrome sparkles. The pointer pulls the form; pressing makes it
+   swell and throws sparkles. Chrome "Wet ınk" wordmark with Blot as the dot.
+2. **Studio:** one sentence on laid paper, then an engraved guilloche band.
+3. **Archive:** an abstract field. Fragments of the work, cut into stars, diamonds, slivers and arches, drift at different
+   depths, blurred and washed in iridescence. They come into focus as you approach; click to open the piece.
+4. **Services:** four words on fluorescent green; black ink floods a row from where you enter.
+5. **Contact:** fluorescent pink, tap-to-copy email and Instagram.
 
-## Structure
-
-Direction: object-led and editorial (references: Poch, BORN, Detroit, OUS Worldwide and an object-tunnel video),
-calm enough for corporate clients. Built with the MotionSites web-builder workflow (brief, references, spec,
-build, screenshot review).
-
-1. **Hero, the object tunnel:** one of the studio's real products repeated on the walls of a tunnel that drifts
-   toward you. Move the pointer to steer it and change the scale (shown live), press "Next object" to swap the
-   product. Giant "wet ınk" with Blot as the dot, a one-line statement and "Start a project".
-2. **[01] Studio:** a mixed-type lockup ("WET INK® IS A CREATIVE STUDIO"), a stack of services in alternating
-   type, and two plain paragraphs for people who sign the brief.
-3. **[02] Archive:** the 3D wheel and the detail sheet (client work first, then two concepts).
-4. **[03] Team:** eight role pills on a hand-drawn line around "MANY HANDS, ONE MARK." Drag or throw a pill and the
-   line follows; arrow keys move a focused pill.
-5. **[04] Services:** condensed editorial rows; black ink floods a row from where you enter.
-6. **[05] Contact:** "LET'S MAKE SOMETHING PEOPLE keep." with tap-to-copy email and Instagram.
-
-The orange ink trail (WebGL) follows the pointer across the page, and pressing in the hero drops ink. Springs drive
-everything you can grab (`js/main.js`). Reduced motion, reduced transparency and more contrast are handled.
+Interactions run on springs (`js/main.js`); reduced motion, reduced transparency and more contrast are handled.
 
 ## Placeholder content
 

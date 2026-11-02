@@ -4,226 +4,128 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Wet Ink Studio</title>
-<meta name="description" content="Wet Ink Studio: identity, packaging, print and websites for brands that want to be kept.">
-<meta name="theme-color" content="#0B0A0C">
+<meta name="description" content="Wet Ink Studio: identity, print, packaging and websites.">
+<meta name="theme-color" content="#050505">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Instrument+Serif:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<!-- Floating glass capsule: content scrolls underneath it -->
 <header class="bar" id="bar" data-tone="dark">
   <div class="bar__glass">
     <a class="logo" href="#top" aria-label="Wet Ink Studio, back to top">
-      <svg class="blot--sm" viewBox="0 0 60 72" aria-hidden="true"><use href="#blot"/></svg>
-      <span class="logo__word">Wet Ink<sup>®</sup></span>
+      <svg class="blot--sm" viewBox="0 0 60 72" aria-hidden="true"><path d="M30 2C30 2 6 30 6 46a24 24 0 0 0 48 0C54 30 30 2 30 2Z" fill="url(#chrome)"/></svg>
+      <span class="logo__word">Wet Ink</span>
     </a>
     <nav class="nav" id="nav" aria-label="Main">
       <span class="nav__pill" id="navPill" aria-hidden="true"></span>
       <a href="#studio">Studio</a>
-      <a href="#archive">Work</a>
+      <a href="#archive">Archive</a>
       <a href="#services">Services</a>
       <a href="#contact">Contact</a>
     </nav>
-    <p class="avail"><span class="avail__dot" aria-hidden="true"></span>Available</p>
   </div>
 </header>
 
 <main id="top">
 
-  <!-- HERO: the object tunnel. One real product, repeated into a tunnel that drifts toward you. -->
+  <!-- HERO: an iridescent form over a turning guilloche, with chrome sparkles -->
   <section class="hero" id="stage" aria-label="Wet Ink Studio">
-    <canvas class="tunnel" id="tunnel" aria-hidden="true"></canvas>
-    <div class="hero__fade" aria-hidden="true"></div>
-
-    <div class="hero__top in in--1">
-      <p class="label hero__eyebrow">Wet Ink Studio — design for brands that want to be kept</p>
-      <div class="hud" aria-live="polite">
-        <p class="label">Scale <b id="hudScale">0.84</b></p>
-        <p class="label">Object <b id="hudIndex">01</b>/<span id="hudTotal">05</span> — <span id="hudName">Jus d'Art</span></p>
-        <button class="hud__next" id="nextObject" type="button">Next object <span aria-hidden="true">→</span></button>
-      </div>
-    </div>
+    <svg class="rosette" id="rosette" viewBox="-500 -500 1000 1000" aria-hidden="true"></svg>
+    <canvas class="blob" id="blob" aria-hidden="true"></canvas>
+    <svg class="star" id="star" viewBox="-100 -100 200 200" aria-hidden="true"><use href="#starShape"/></svg>
 
     <div class="hero__bottom">
       <!-- "ink" is set with a dotless ı: Blot sits where the dot would be -->
       <h1 class="mega" aria-label="Wet Ink Studio">
-        <span class="mega__line"><span class="mega__rise">wet</span></span>
-        <span class="mega__line"><span class="mega__rise mega__rise--2"><span class="tittle-host">ı<button class="mascot" id="mascot" type="button" aria-label="Blot, the studio mascot. Drag it around or tap it.">
+        <span class="mega__line"><span class="mega__rise chrome">Wet</span></span>
+        <span class="mega__line"><span class="mega__rise mega__rise--2"><span class="tittle-host chrome">ı<button class="mascot" id="mascot" type="button" aria-label="Blot, the studio mascot. Drag it around or tap it.">
           <svg class="blot" viewBox="0 0 60 72" aria-hidden="true">
-            <use href="#blot"/>
+            <path d="M30 2C30 2 6 30 6 46a24 24 0 0 0 48 0C54 30 30 2 30 2Z" fill="url(#chrome)"/>
+            <ellipse cx="19" cy="34" rx="3.4" ry="7" fill="#fff" opacity=".8" transform="rotate(20 19 34)"/>
             <g class="eyes">
-              <ellipse cx="21" cy="44" rx="6.2" ry="7.4" fill="#EDEAE3"/>
-              <ellipse cx="39" cy="44" rx="6.2" ry="7.4" fill="#EDEAE3"/>
-              <circle class="pupil" cx="21" cy="45" r="3.2" fill="#131214"/>
-              <circle class="pupil" cx="39" cy="45" r="3.2" fill="#131214"/>
+              <ellipse cx="21" cy="46" rx="6" ry="7.2" fill="#050505"/>
+              <ellipse cx="39" cy="46" rx="6" ry="7.2" fill="#050505"/>
+              <circle class="pupil" cx="21" cy="47" r="2.6" fill="#fff"/>
+              <circle class="pupil" cx="39" cy="47" r="2.6" fill="#fff"/>
             </g>
           </svg>
-        </button></span>nk</span><em class="mega__studio">studio</em></span>
+        </button></span><span class="chrome">nk</span></span></span>
       </h1>
-
-      <div class="hero__side">
-        <p class="statement in in--3">We build the marks, boxes and screens your brand is remembered by.</p>
-        <p class="hero__sub in in--3">Identity, packaging, print and websites for companies that want to look considered and feel human.</p>
-        <div class="hero__ctas in in--4">
-          <a class="cta" href="#contact"><span>Start a project</span><span class="cta__disc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
-          <a class="textlink" href="#archive">See the work</a>
-        </div>
-        <p class="label hero__hint" id="heroHint">Move to steer · Press to drop ink · Throw Blot</p>
-      </div>
+      <p class="hero__line in in--3"><em>Marks that stay.</em></p>
     </div>
   </section>
 
-  <!-- STUDIO: a mixed-type lockup, then a plain-spoken paragraph for the people who sign the brief -->
-  <section class="studio" id="studio" aria-labelledby="studioTitle">
-    <h2 class="lockup reveal" id="studioTitle">
-      <span class="lockup__wide">Wet Ink<sup>®</sup></span>
-      <span class="lockup__thin">is a creative studio</span>
-      <span class="lockup__serif">(for brands that want to be kept)</span>
-    </h2>
-    <ul class="stack reveal" aria-label="What we make">
-      <li><a href="#services" class="s1">Identity</a></li>
-      <li><a href="#services" class="s2">Packaging</a></li>
-      <li><a href="#services" class="s3">Print &amp; Riso</a></li>
-      <li><a href="#services" class="s1">Websites</a></li>
-      <li><a href="#services" class="s4">Art direction</a></li>
+  <!-- STUDIO: one sentence on laid paper -->
+  <section class="studio" id="studio" aria-label="Studio">
+    <p class="studio__line reveal">A studio for identity, print, packaging and&nbsp;the&nbsp;web. Drawn by hand, <em>finished like jewellery.</em></p>
+    <svg class="gband" data-gband aria-hidden="true"></svg>
+  </section>
+
+  <!-- ARCHIVE: fragments of the work, out of focus until you come close -->
+  <section class="archive" id="archive" aria-labelledby="archiveTitle">
+    <h2 class="archive__title reveal" id="archiveTitle"><em>Archive</em></h2>
+    <div class="field" id="field" role="list" aria-label="Selected work. Focus a fragment and press Enter to open it."></div>
+  </section>
+
+  <!-- SERVICES: four words on fluorescent green -->
+  <section class="services" id="services" aria-label="Services">
+    <ul class="rows">
+      <li class="row reveal"><h3 class="row__t">Identity</h3></li>
+      <li class="row reveal"><h3 class="row__t"><em>Packaging</em></h3></li>
+      <li class="row reveal"><h3 class="row__t">Print</h3></li>
+      <li class="row reveal"><h3 class="row__t"><em>Websites</em></h3></li>
     </ul>
-    <div class="about">
-      <p class="label kicker reveal"><span>[ 01 ]</span> Studio</p>
-      <div class="about__text">
-        <p class="reveal">We are a small studio of designers, illustrators and developers. We draw by hand first, then build it properly: brand systems, packaging that survives a shelf, print that people pin up, and websites that load fast and say one thing clearly.</p>
-        <p class="reveal">Our clients range from consultancies and financial firms to food, fashion and print brands. Every project gets the same care, a fixed scope, a clear timeline and one person you can call.</p>
-      </div>
-    </div>
   </section>
 
-  <!-- ARCHIVE WHEEL -->
-  <section class="archive" id="archive" aria-label="Selected work">
-    <div class="section-head section-head--light">
-      <div>
-        <p class="label kicker reveal"><span>[ 02 ]</span> Selected work</p>
-        <h2 class="h2 reveal">The archive</h2>
-      </div>
-      <p class="label reveal">Flick to spin · Tap the front piece to open it</p>
-    </div>
-    <div class="wheel" id="wheel" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Archive. Left and right arrow keys turn it, Enter opens the front piece.">
-      <div class="wheel__ring" id="ring"></div>
-    </div>
-    <div class="wheel__controls">
-      <button class="round" id="prev" type="button" aria-label="Previous piece">←</button>
-      <button class="wheel__now" id="openFront" type="button">
-        <span class="wheel__count"><b id="archiveIndex">01</b>/<span id="archiveTotal">7</span></span>
-        <span class="wheel__name" id="archiveName">—</span>
-        <span class="wheel__kind" id="archiveKind"></span>
-        <span class="wheel__open">Open ↗</span>
-      </button>
-      <button class="round" id="next" type="button" aria-label="Next piece">→</button>
-    </div>
-  </section>
-
-  <!-- TEAM: roles around one title, linked by a hand-drawn line. Drag a role and the line follows. -->
-  <section class="team" id="team" aria-labelledby="teamTitle">
-    <p class="label kicker reveal"><span>[ 03 ]</span> How we're built</p>
-    <div class="team__stage" id="teamStage">
-      <svg class="team__line" id="teamLine" aria-hidden="true"><path id="teamPath"/></svg>
-      <h2 class="team__title" id="teamTitle">Many hands,<br>one mark.</h2>
-      <ul class="roles" id="roles" aria-label="Disciplines in the studio">
-        <li class="role" data-x=".10" data-y=".22">Art direction</li>
-        <li class="role" data-x=".34" data-y=".08">Identity</li>
-        <li class="role" data-x=".62" data-y=".12">Packaging</li>
-        <li class="role" data-x=".86" data-y=".26">Illustration</li>
-        <li class="role" data-x=".90" data-y=".70">Riso print</li>
-        <li class="role" data-x=".66" data-y=".90">Web build</li>
-        <li class="role" data-x=".36" data-y=".86">Motion</li>
-        <li class="role" data-x=".09" data-y=".68">Strategy</li>
-      </ul>
-    </div>
-    <p class="label muted team__hint">Drag a role around the table</p>
-  </section>
-
-  <!-- SERVICES: editorial rows; ink floods each row from where you enter -->
-  <section class="services" id="services" aria-labelledby="servicesTitle">
-    <div class="section-head">
-      <div>
-        <p class="label kicker reveal"><span>[ 04 ]</span> Services</p>
-        <h2 class="h2 reveal" id="servicesTitle">What we make</h2>
-      </div>
-      <p class="label muted reveal">Fixed scopes · Clear timelines · One point of contact</p>
-    </div>
-    <ol class="rows">
-      <li class="row reveal">
-        <span class="row__n label">01</span>
-        <h3 class="row__t">Identity</h3>
-        <p class="row__d">Names, marks, type systems and the guidelines that keep a brand consistent across every team and supplier.</p>
-        <p class="row__tags label">Logo · Type · Guidelines</p>
-      </li>
-      <li class="row reveal">
-        <span class="row__n label">02</span>
-        <h3 class="row__t">Packaging</h3>
-        <p class="row__d">Cartons, labels, boxes and sleeves that read from across a shop, print cleanly and feel right in the hand.</p>
-        <p class="row__tags label">Structure · Label · Production</p>
-      </li>
-      <li class="row reveal">
-        <span class="row__n label">03</span>
-        <h3 class="row__t">Print &amp; Riso</h3>
-        <p class="row__d">Reports, posters, postcards and editions, proofed by hand and produced with printers we trust.</p>
-        <p class="row__tags label">Editorial · Riso · Die-cut</p>
-      </li>
-      <li class="row reveal">
-        <span class="row__n label">04</span>
-        <h3 class="row__t">Websites</h3>
-        <p class="row__d">Fast, accessible sites with one or two interactions people remember. Designed and built in-house, in more than one language if you need it.</p>
-        <p class="row__tags label">Design · Build · Motion</p>
-      </li>
-    </ol>
-  </section>
-
-  <!-- CONTACT -->
+  <!-- CONTACT: fluorescent pink -->
   <section class="contact" id="contact" aria-labelledby="contactTitle">
-    <p class="label kicker reveal"><span>[ 05 ]</span> Contact</p>
-    <h2 class="contact__title reveal" id="contactTitle"><span class="nw">Let's make</span> <span class="nw">something</span> <span class="nw">people <em class="serif">keep.</em></span></h2>
+    <h2 class="contact__title reveal" id="contactTitle">Write <em>to us.</em></h2>
     <div class="contact__actions reveal">
-      <button class="contact__mail" id="mail" type="button" aria-describedby="mailState">hello@wetink.studio</button>
-      <span class="contact__state label" id="mailState" role="status">Tap to copy</span>
+      <button class="contact__mail" id="mail" type="button" aria-live="polite">hello@wetink.studio</button>
+      <a class="contact__ig" href="https://www.instagram.com/wetink.studio/" target="_blank" rel="noopener">Instagram ↗</a>
     </div>
-    <a class="contact__ig reveal" href="https://www.instagram.com/wetink.studio/" target="_blank" rel="noopener">@wetink.studio ↗</a>
   </section>
 </main>
 
 <footer class="foot" id="foot">
-  <div class="foot__meta label">
-    <span>Wet Ink Studio © 2026</span>
-    <span>Printed in black and Riso orange</span>
-    <a href="#top">Back to top ↑</a>
-  </div>
-  <p class="foot__word" id="footWord" aria-label="Wet Ink">
+  <svg class="gband gband--light" data-gband aria-hidden="true"></svg>
+  <p class="foot__word chrome-letters" id="footWord" aria-label="Wet Ink">
     <span>W</span><span>E</span><span>T</span><span class="sp"> </span><span>I</span><span>N</span><span>K</span>
   </p>
 </footer>
 
-<!-- Archive detail sheet: rises out of the piece you opened, drag it down to put it back -->
+<!-- Detail sheet: grows out of the fragment you opened, drag it down to put it back -->
 <div class="scrim" id="scrim" hidden></div>
 <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
   <div class="sheet__handle" id="sheetHandle">
     <span class="sheet__grabber" aria-hidden="true"></span>
     <div class="sheet__head">
-      <div>
-        <p class="label sheet__meta" id="sheetMeta"></p>
-        <h2 class="sheet__title" id="sheetTitle"></h2>
-      </div>
-      <button class="round round--ink" id="sheetClose" type="button" aria-label="Close">✕</button>
+      <h2 class="sheet__title" id="sheetTitle"></h2>
+      <button class="round" id="sheetClose" type="button" aria-label="Close">✕</button>
     </div>
   </div>
   <div class="sheet__body" id="sheetBody"></div>
 </section>
 
-<!-- Shared symbol: the ink drop, used as logo and mascot -->
+<!-- Shared defs: the chrome gradient and the four-point star -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="blot" viewBox="0 0 60 72">
-    <path d="M30 2C30 2 6 30 6 46a24 24 0 0 0 48 0C54 30 30 2 30 2Z" fill="currentColor"/>
-    <ellipse cx="19" cy="38" rx="3.2" ry="6" fill="#fff" opacity=".35" transform="rotate(20 19 38)"/>
+  <defs>
+    <linearGradient id="chrome" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".22" stop-color="#9fe9ff"/><stop offset=".42" stop-color="#ffffff"/>
+      <stop offset=".58" stop-color="#ff9de6"/><stop offset=".78" stop-color="#e9ffc4"/><stop offset="1" stop-color="#8a8a96"/>
+    </linearGradient>
+    <radialGradient id="starFill" cx=".42" cy=".38" r=".75">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".25" stop-color="#e9ffc4"/><stop offset=".45" stop-color="#9fe9ff"/>
+      <stop offset=".65" stop-color="#7a6bff"/><stop offset=".85" stop-color="#ff3ec8"/><stop offset="1" stop-color="#ffd1f3"/>
+    </radialGradient>
+  </defs>
+  <symbol id="starShape" viewBox="-100 -100 200 200">
+    <path d="M0-96C8-40 22-22 96 0C22 22 8 40 0 96C-8 40-22 22-96 0C-22-22-8-40 0-96Z" fill="url(#starFill)"/>
+    <path d="M0-96C8-40 22-22 96 0C22 22 8 40 0 96C-8 40-22 22-96 0C-22-22-8-40 0-96Z" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.2"/>
+    <ellipse cx="-14" cy="-22" rx="9" ry="22" fill="#fff" opacity=".85" transform="rotate(-25 -14 -22)"/>
   </symbol>
 </svg>
 
