@@ -6,7 +6,7 @@
 :root{--stone:#e4e1dc;--ink:#151513;--slate:#5a6e74;--orange:#f39a1e;--ember:#ff5a1f;--paper:#f4f2ee;--sans:"Hanken Grotesk","Helvetica Neue",Arial,sans-serif;color-scheme:light}
 *{box-sizing:border-box}
 html,body{background:var(--ink)}
-body{margin:0;font:400 15px/1.5 var(--sans);color:var(--ink);overflow-x:hidden}
+body{margin:0;font:400 15px/1.5 var(--sans);color:var(--ink);overflow-x:clip}
 img{display:block;max-width:100%}
 .wrap{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
 .nav{position:fixed;z-index:9;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding-block:14px;color:#fff}
@@ -169,7 +169,7 @@ img{display:block;max-width:100%}
   }
   function measure() { const r = haul.getBoundingClientRect(); target = clamp(-r.top / (r.height - innerHeight)); }
   function tick(t) {
-    const dt = Math.min(.032, (t - last) / 1000); last = t;
+    measure(); const dt = Math.min(.032, (t - last) / 1000); last = t;
     if (reduce) x = target; else { v += (-k * (x - target) - c * v) * dt; x += v * dt; }
     draw(x); requestAnimationFrame(tick);
   }
