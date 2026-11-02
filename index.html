@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Wet Ink Studio</title>
-<meta name="description" content="Wet Ink Studio: identity, print, packaging and websites, drawn by hand first.">
-<meta name="theme-color" content="#0C0B0D">
+<meta name="description" content="Wet Ink Studio: identity, packaging, print and websites for brands that want to be kept.">
+<meta name="theme-color" content="#0B0A0C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Instrument+Serif:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap">
@@ -14,7 +14,7 @@
 <body>
 
 <!-- Floating glass capsule: content scrolls underneath it -->
-<header class="bar" id="bar" data-tone="light">
+<header class="bar" id="bar" data-tone="dark">
   <div class="bar__glass">
     <a class="logo" href="#top" aria-label="Wet Ink Studio, back to top">
       <svg class="blot--sm" viewBox="0 0 60 72" aria-hidden="true"><use href="#blot"/></svg>
@@ -23,7 +23,7 @@
     <nav class="nav" id="nav" aria-label="Main">
       <span class="nav__pill" id="navPill" aria-hidden="true"></span>
       <a href="#studio">Studio</a>
-      <a href="#archive">Archive</a>
+      <a href="#archive">Work</a>
       <a href="#services">Services</a>
       <a href="#contact">Contact</a>
     </nav>
@@ -33,71 +33,78 @@
 
 <main id="top">
 
-  <!-- HERO: a sheet of paper inset in a black page; the ink on it is live -->
-  <section class="hero" aria-label="Wet Ink Studio">
-    <div class="sheetpaper" id="paper">
-      <div class="hero__top">
-        <p class="label hero__eyebrow in in--1">Identity · Print · Packaging · Web</p>
-        <div class="hero__corner in in--1">
-          <span class="reg" aria-hidden="true"></span>
-          <p class="label hero__hint" id="heroHint">Move to draw · Press to drop ink · Throw Blot</p>
-        </div>
+  <!-- HERO: the object tunnel. One real product, repeated into a tunnel that drifts toward you. -->
+  <section class="hero" id="stage" aria-label="Wet Ink Studio">
+    <canvas class="tunnel" id="tunnel" aria-hidden="true"></canvas>
+    <div class="hero__fade" aria-hidden="true"></div>
+
+    <div class="hero__top in in--1">
+      <p class="label hero__eyebrow">Wet Ink Studio — design for brands that want to be kept</p>
+      <div class="hud" aria-live="polite">
+        <p class="label">Scale <b id="hudScale">0.84</b></p>
+        <p class="label">Object <b id="hudIndex">01</b>/<span id="hudTotal">05</span> — <span id="hudName">Jus d'Art</span></p>
+        <button class="hud__next" id="nextObject" type="button">Next object <span aria-hidden="true">→</span></button>
       </div>
+    </div>
 
-      <div class="hero__bottom">
-        <!-- "ink" is set with a dotless ı: Blot sits where the dot would be -->
-        <h1 class="mega" aria-label="Wet Ink Studio">
-          <span class="mega__line"><span class="mega__rise">Wet</span></span>
-          <span class="mega__line"><span class="mega__rise mega__rise--2"><span class="tittle-host">ı<button class="mascot" id="mascot" type="button" aria-label="Blot, the studio mascot. Drag it around or tap it.">
-            <svg class="blot" viewBox="0 0 60 72" aria-hidden="true">
-              <use href="#blot"/>
-              <g class="eyes">
-                <ellipse cx="21" cy="44" rx="6.2" ry="7.4" fill="var(--paper)"/>
-                <ellipse cx="39" cy="44" rx="6.2" ry="7.4" fill="var(--paper)"/>
-                <circle class="pupil" cx="21" cy="45" r="3.2" fill="var(--ink)"/>
-                <circle class="pupil" cx="39" cy="45" r="3.2" fill="var(--ink)"/>
-              </g>
-            </svg>
-          </button></span>nk</span><em class="mega__studio">studio</em></span>
-        </h1>
+    <div class="hero__bottom">
+      <!-- "ink" is set with a dotless ı: Blot sits where the dot would be -->
+      <h1 class="mega" aria-label="Wet Ink Studio">
+        <span class="mega__line"><span class="mega__rise">wet</span></span>
+        <span class="mega__line"><span class="mega__rise mega__rise--2"><span class="tittle-host">ı<button class="mascot" id="mascot" type="button" aria-label="Blot, the studio mascot. Drag it around or tap it.">
+          <svg class="blot" viewBox="0 0 60 72" aria-hidden="true">
+            <use href="#blot"/>
+            <g class="eyes">
+              <ellipse cx="21" cy="44" rx="6.2" ry="7.4" fill="#EDEAE3"/>
+              <ellipse cx="39" cy="44" rx="6.2" ry="7.4" fill="#EDEAE3"/>
+              <circle class="pupil" cx="21" cy="45" r="3.2" fill="#131214"/>
+              <circle class="pupil" cx="39" cy="45" r="3.2" fill="#131214"/>
+            </g>
+          </svg>
+        </button></span>nk</span><em class="mega__studio">studio</em></span>
+      </h1>
 
-        <div class="hero__side">
-          <p class="hero__lede in in--3">A small studio that draws identities, packaging, print and websites by hand first. We make marks that stay, and keep them a little wet so they can still move.</p>
-          <div class="hero__ctas in in--4">
-            <a class="cta" href="#archive"><span>See the archive</span><span class="cta__disc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
-            <a class="textlink" href="#contact">Say hello</a>
-          </div>
+      <div class="hero__side">
+        <p class="statement in in--3">We build the marks, boxes and screens your brand is remembered by.</p>
+        <p class="hero__sub in in--3">Identity, packaging, print and websites for companies that want to look considered and feel human.</p>
+        <div class="hero__ctas in in--4">
+          <a class="cta" href="#contact"><span>Start a project</span><span class="cta__disc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
+          <a class="textlink" href="#archive">See the work</a>
         </div>
+        <p class="label hero__hint" id="heroHint">Move to steer · Press to drop ink · Throw Blot</p>
       </div>
     </div>
   </section>
 
-  <!-- TICKER: drifts on its own, picks up the speed and direction of your scroll -->
-  <div class="ticker" aria-hidden="true">
-    <div class="ticker__track" id="ticker">
-      <span>“Work is wet”</span><b>✺</b><span>Identity</span><b>✺</b><span>Packaging</span><b>✺</b><span>Risograph</span><b>✺</b><span>Websites</span><b>✺</b><span>“Never quite dry”</span><b>✺</b>
-      <span>“Work is wet”</span><b>✺</b><span>Identity</span><b>✺</b><span>Packaging</span><b>✺</b><span>Risograph</span><b>✺</b><span>Websites</span><b>✺</b><span>“Never quite dry”</span><b>✺</b>
-    </div>
-  </div>
-
-  <!-- STUDIO: a manifesto read at scroll pace -->
+  <!-- STUDIO: a mixed-type lockup, then a plain-spoken paragraph for the people who sign the brief -->
   <section class="studio" id="studio" aria-labelledby="studioTitle">
-    <p class="label kicker reveal"><span>[ 01 ]</span> Studio</p>
-    <h2 class="manifesto" id="studioTitle">We are a small studio for identity, print, packaging and the web. We draw first, proof by hand and build <em>the thing people want to touch.</em> Nothing leaves the desk until it has a mark of its own, and the ink is <em>still a little wet.</em></h2>
-    <dl class="facts">
-      <div class="reveal"><dt class="label">Disciplines</dt><dd>Identity, print, packaging, web</dd></div>
-      <div class="reveal"><dt class="label">How we work</dt><dd>Listen, sketch, proof, build, release</dd></div>
-      <div class="reveal"><dt class="label">Inks</dt><dd>Black and Riso orange</dd></div>
-      <div class="reveal"><dt class="label">Write to</dt><dd><a href="#contact">hello@wetink.studio</a></dd></div>
-    </dl>
+    <h2 class="lockup reveal" id="studioTitle">
+      <span class="lockup__wide">Wet Ink<sup>®</sup></span>
+      <span class="lockup__thin">is a creative studio</span>
+      <span class="lockup__serif">(for brands that want to be kept)</span>
+    </h2>
+    <ul class="stack reveal" aria-label="What we make">
+      <li><a href="#services" class="s1">Identity</a></li>
+      <li><a href="#services" class="s2">Packaging</a></li>
+      <li><a href="#services" class="s3">Print &amp; Riso</a></li>
+      <li><a href="#services" class="s1">Websites</a></li>
+      <li><a href="#services" class="s4">Art direction</a></li>
+    </ul>
+    <div class="about">
+      <p class="label kicker reveal"><span>[ 01 ]</span> Studio</p>
+      <div class="about__text">
+        <p class="reveal">We are a small studio of designers, illustrators and developers. We draw by hand first, then build it properly: brand systems, packaging that survives a shelf, print that people pin up, and websites that load fast and say one thing clearly.</p>
+        <p class="reveal">Our clients range from consultancies and financial firms to food, fashion and print brands. Every project gets the same care, a fixed scope, a clear timeline and one person you can call.</p>
+      </div>
+    </div>
   </section>
 
   <!-- ARCHIVE WHEEL -->
-  <section class="archive" id="archive" aria-label="Archive">
+  <section class="archive" id="archive" aria-label="Selected work">
     <div class="section-head section-head--light">
       <div>
-        <p class="label kicker reveal"><span>[ 02 ]</span> Archive</p>
-        <h2 class="h2 reveal">The <em class="serif">archive</em></h2>
+        <p class="label kicker reveal"><span>[ 02 ]</span> Selected work</p>
+        <h2 class="h2 reveal">The archive</h2>
       </div>
       <p class="label reveal">Flick to spin · Tap the front piece to open it</p>
     </div>
@@ -116,38 +123,58 @@
     </div>
   </section>
 
+  <!-- TEAM: roles around one title, linked by a hand-drawn line. Drag a role and the line follows. -->
+  <section class="team" id="team" aria-labelledby="teamTitle">
+    <p class="label kicker reveal"><span>[ 03 ]</span> How we're built</p>
+    <div class="team__stage" id="teamStage">
+      <svg class="team__line" id="teamLine" aria-hidden="true"><path id="teamPath"/></svg>
+      <h2 class="team__title" id="teamTitle">Many hands,<br>one mark.</h2>
+      <ul class="roles" id="roles" aria-label="Disciplines in the studio">
+        <li class="role" data-x=".10" data-y=".22">Art direction</li>
+        <li class="role" data-x=".34" data-y=".08">Identity</li>
+        <li class="role" data-x=".62" data-y=".12">Packaging</li>
+        <li class="role" data-x=".86" data-y=".26">Illustration</li>
+        <li class="role" data-x=".90" data-y=".70">Riso print</li>
+        <li class="role" data-x=".66" data-y=".90">Web build</li>
+        <li class="role" data-x=".36" data-y=".86">Motion</li>
+        <li class="role" data-x=".09" data-y=".68">Strategy</li>
+      </ul>
+    </div>
+    <p class="label muted team__hint">Drag a role around the table</p>
+  </section>
+
   <!-- SERVICES: editorial rows; ink floods each row from where you enter -->
   <section class="services" id="services" aria-labelledby="servicesTitle">
     <div class="section-head">
       <div>
-        <p class="label kicker reveal"><span>[ 03 ]</span> Services</p>
-        <h2 class="h2 reveal" id="servicesTitle">What we <em class="serif">ink</em></h2>
+        <p class="label kicker reveal"><span>[ 04 ]</span> Services</p>
+        <h2 class="h2 reveal" id="servicesTitle">What we make</h2>
       </div>
-      <p class="label muted reveal">Four things, done by hand first</p>
+      <p class="label muted reveal">Fixed scopes · Clear timelines · One point of contact</p>
     </div>
     <ol class="rows">
       <li class="row reveal">
         <span class="row__n label">01</span>
         <h3 class="row__t">Identity</h3>
-        <p class="row__d">Names, marks, type systems and the rules that keep them consistent on every surface.</p>
+        <p class="row__d">Names, marks, type systems and the guidelines that keep a brand consistent across every team and supplier.</p>
         <p class="row__tags label">Logo · Type · Guidelines</p>
       </li>
       <li class="row reveal">
         <span class="row__n label">02</span>
         <h3 class="row__t">Packaging</h3>
-        <p class="row__d">Boxes, cartons, labels and sleeves that read from across a shop and feel right in the hand.</p>
-        <p class="row__tags label">Structure · Label · Print</p>
+        <p class="row__d">Cartons, labels, boxes and sleeves that read from across a shop, print cleanly and feel right in the hand.</p>
+        <p class="row__tags label">Structure · Label · Production</p>
       </li>
       <li class="row reveal">
         <span class="row__n label">03</span>
         <h3 class="row__t">Print &amp; Riso</h3>
-        <p class="row__d">Posters, postcards and zines, proofed by hand and printed with spot inks that never come out the same twice.</p>
-        <p class="row__tags label">Riso · Offset · Die-cut</p>
+        <p class="row__d">Reports, posters, postcards and editions, proofed by hand and produced with printers we trust.</p>
+        <p class="row__tags label">Editorial · Riso · Die-cut</p>
       </li>
       <li class="row reveal">
         <span class="row__n label">04</span>
         <h3 class="row__t">Websites</h3>
-        <p class="row__d">Quiet, fast sites with one or two interactions people remember. Designed and built in-house.</p>
+        <p class="row__d">Fast, accessible sites with one or two interactions people remember. Designed and built in-house, in more than one language if you need it.</p>
         <p class="row__tags label">Design · Build · Motion</p>
       </li>
     </ol>
@@ -155,8 +182,8 @@
 
   <!-- CONTACT -->
   <section class="contact" id="contact" aria-labelledby="contactTitle">
-    <p class="label kicker reveal"><span>[ 04 ]</span> Contact</p>
-    <h2 class="contact__title reveal" id="contactTitle"><span class="nw">Got something</span> <span class="nw">that needs a <em class="serif">mark?</em></span></h2>
+    <p class="label kicker reveal"><span>[ 05 ]</span> Contact</p>
+    <h2 class="contact__title reveal" id="contactTitle"><span class="nw">Let's make</span> <span class="nw">something</span> <span class="nw">people <em class="serif">keep.</em></span></h2>
     <div class="contact__actions reveal">
       <button class="contact__mail" id="mail" type="button" aria-describedby="mailState">hello@wetink.studio</button>
       <span class="contact__state label" id="mailState" role="status">Tap to copy</span>
@@ -168,7 +195,7 @@
 <footer class="foot" id="foot">
   <div class="foot__meta label">
     <span>Wet Ink Studio © 2026</span>
-    <span>Printed in black and Riso orange on 120 gsm uncoated</span>
+    <span>Printed in black and Riso orange</span>
     <a href="#top">Back to top ↑</a>
   </div>
   <p class="foot__word" id="footWord" aria-label="Wet Ink">

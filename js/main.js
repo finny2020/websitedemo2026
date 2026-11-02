@@ -314,7 +314,7 @@
   }
 
   /* ============================================================ hero + trail */
-  const hero = $("#paper");   // the inset paper sheet: presses here drop ink
+  const hero = $("#stage");   // the hero stage: presses here drop ink
   const sheetOpen = () => !$("#sheet").hidden;
   const stroke = velocityTracker();
   let lastTrail = null, touchStart = null;
@@ -343,21 +343,15 @@
     if (e.target.closest("button, a")) return;
     if (e.pointerType === "touch") { touchStart = { x: e.pageX, y: e.pageY, t: performance.now() }; return; }
     const v = stroke.get();
-    dropInk(e.pageX, e.pageY, 1, v.x, v.y, BLACK);
+    dropInk(e.pageX, e.pageY, .9, v.x, v.y, ORANGE, .2);   // on black, the drop is orange
   });
   hero.addEventListener("pointerup", e => {
     if (e.pointerType !== "touch" || !touchStart) return;
-    if (Math.hypot(e.pageX - touchStart.x, e.pageY - touchStart.y) < 10 && performance.now() - touchStart.t < 500) dropInk(e.pageX, e.pageY, .7, 0, 0, BLACK);
+    if (Math.hypot(e.pageX - touchStart.x, e.pageY - touchStart.y) < 10 && performance.now() - touchStart.t < 500) dropInk(e.pageX, e.pageY, .7, 0, 0, ORANGE, .2);
     touchStart = null;
   });
   hero.addEventListener("pointercancel", () => { touchStart = null; });
   if (!finePointer) $("#heroHint").textContent = "Tap to drop ink · Throw Blot";
-
-  // A first drop, so the page shows what it does before anyone touches it.
-  setTimeout(() => {
-    const r = hero.getBoundingClientRect();
-    dropInk(r.left + scrollX + r.width * .8, r.top + scrollY + r.height * .3, clamp(r.width / 1200, .55, 1.2), 0, 0, BLACK, .4);
-  }, reduced ? 100 : 900);
 
   /* ================================================================ Blot
      Grab it where you grabbed it, drag it 1:1 on a rubber-band leash, throw it.
@@ -458,48 +452,208 @@
     animate(mascotTask);
   });
 
-  /* ============================================================ ticker
-     Drifts slowly; your scroll adds its speed and direction, then eases back. */
-  const ticker = $("#ticker");
-  const tickVel = new Spring(0, { damping: 1, response: .6, precision: .5 });
-  let tickX = 0, tickVisible = false, lastScrollY = scrollY, lastScrollT = performance.now();
-  function tickerTask(dt) {
-    if (!tickVisible || reduced) return false;
-    tickVel.step(dt);
-    tickX -= (38 + tickVel.value * .4) * dt;
-    const half = ticker.scrollWidth / 2;
-    if (tickX <= -half) tickX += half; else if (tickX > 0) tickX -= half;
-    ticker.style.transform = `translate3d(${tickX}px, 0, 0)`;
-    return true;
-  }
-  new IntersectionObserver(([en]) => { tickVisible = en.isIntersecting; if (tickVisible) animate(tickerTask); }).observe(ticker);
+  /* ============================================================ object tunnel (hero signature)
+     One real product, repeated on the walls of a tunnel that drifts toward you.
+     Pointer position steers the vanishing point; pointer distance from it sets the tile scale
+     (shown live in the HUD). "Next object" swaps the product with a spring.
+     Two springs per axis, one for scale, one for the swap; drawn on a 2D canvas, paused off screen. */
+  const tunnel = (() => {
+    const cv = $("#tunnel"), ctx = cv.getContext("2d");
+    const P = "assets/archive/";
+    const OBJECTS = [
+      { name: "Jus d'Art", src: P + "cut-carton.webp" },
+      { name: "Loud Feet", src: P + "loud-feet-sock.webp" },
+      { name: "Printing Studio", src: P + "cut-postcard-front.webp" },
+      { name: "Quiet Luxury", src: P + "sock-left.webp" },
+      { name: "Printing Studio, back", src: P + "cut-postcard-back.webp" }
+    ];
+    OBJECTS.forEach(o => { o.img = new Image(); o.img.decoding = "async"; o.img.src = o.src; o.img.onload = () => animate(task); });
+    const hudScale = $("#hudScale"), hudIndex = $("#hudIndex"), hudName = $("#hudName");
+    $("#hudTotal").textContent = String(OBJECTS.length).padStart(2, "0");
 
-  /* ============================================================ studio manifesto
-     Read at scroll pace: each word's opacity follows how far the paragraph has travelled
-     (1:1 with scroll, no smoothing), from 16% to full. Accent phrases are already full strength. */
-  const manifesto = $(".manifesto");
-  const words = [];
-  (function split(node) {
-    [...node.childNodes].forEach(n => {
-      if (n.nodeType === 3) {
-        const frag = document.createDocumentFragment();
-        n.textContent.split(/(\s+)/).forEach(part => {
-          if (!part) return;
-          if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
-          const w = document.createElement("span"); w.className = "w"; w.textContent = part; words.push(w); frag.appendChild(w);
-        });
-        n.replaceWith(frag);
-      } else if (n.nodeType === 1 && n.tagName !== "EM") split(n);
+    let W = 0, H = 0, dpr = 1, visible = true, cur = 0, swapTo = -1, flight = 0, t = 0;
+    const vx = new Spring(0, { damping: 1, response: .6, precision: .2 });
+    const vy = new Spring(0, { damping: 1, response: .6, precision: .2 });
+    const sc = new Spring(.84, { damping: 1, response: .35, precision: .002 });
+    const pop = new Spring(1, { damping: .6, response: .4, precision: .002 });
+    const tilt = new Spring(0, { damping: 1, response: .5, precision: .01 });
+    const base = () => ({ x: W * (W < 720 ? .5 : .6), y: H * (W < 720 ? .3 : .42) });
+
+    function size() {
+      const r = cv.getBoundingClientRect();
+      dpr = Math.min(2, devicePixelRatio || 1);
+      W = r.width; H = r.height;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      const b = base(); vx.jump(b.x); vy.jump(b.y);
+      animate(task);
+    }
+
+    const D = 14, GAP = .55, COLS = 6, ROWS = 4;
+    function draw() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      const o = OBJECTS[cur], img = o.img;
+      if (!img.complete || !img.naturalWidth) return;
+      const asp = img.naturalWidth / img.naturalHeight;
+      const cx = W / 2, cy = H / 2, hw = W * .62, hh = H * .66;
+      const tile = Math.min(W, H) * .17 * sc.value;
+      // tiles on the four walls, far to near
+      const zs = [];
+      for (let i = D - 1; i >= 0; i--) zs.push(1 + i * GAP - (flight % GAP));
+      const per = [];
+      for (let c = 0; c < COLS; c++) { const f = c / (COLS - 1) * 2 - 1; per.push([f * hw, -hh], [f * hw, hh]); }
+      for (let r = 1; r < ROWS - 1; r++) { const f = r / (ROWS - 1) * 2 - 1; per.push([-hw, f * hh], [hw, f * hh]); }
+      for (const z of zs) {
+        const k = 1 / z, fog = Math.pow(clamp(1 - (z - 1) / (D * GAP), 0, 1), 1.4);
+        if (fog <= .01) continue;
+        ctx.globalAlpha = fog * .9;
+        const h = tile * k, w = h * asp, hh2 = asp > 1.2 ? h / asp * 1.4 : h, ww2 = asp > 1.2 ? w / asp * 1.4 : w;
+        for (const [x, y] of per) {
+          const sx = cx + x * k + (vx.value - cx) * (1 - k), sy = cy + y * k + (vy.value - cy) * (1 - k);
+          ctx.drawImage(img, sx - ww2 / 2, sy - hh2 / 2, ww2, hh2);
+        }
+      }
+      // the hero object, at the vanishing point
+      ctx.globalAlpha = 1;
+      const big = Math.min(W * (asp > 1.2 ? .5 : .32), H * (W < 720 ? .3 : .5)) * (.75 + sc.value * .3) * pop.value;
+      const bh = asp > 1.2 ? big / asp * 1.15 : big, bw = bh * asp;
+      ctx.save();
+      ctx.translate(vx.value, vy.value + Math.sin(t * 1.2) * (reduced ? 0 : 4));
+      ctx.rotate(tilt.value);
+      ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = 40; ctx.shadowOffsetY = 18;
+      ctx.drawImage(img, -bw / 2, -bh / 2, bw, bh);
+      ctx.restore();
+    }
+
+    function task(dt) {
+      if (!visible) return false;
+      if (!reduced) { flight += dt * .12; t += dt; }
+      [vx, vy, sc, pop, tilt].forEach(s => s.step(dt));
+      if (swapTo >= 0 && pop.value < .06) {   // the swap happens out of sight, then the new object pops in
+        cur = swapTo; swapTo = -1; pop.to(1, { damping: .6, response: .4 });
+        hudIndex.textContent = String(cur + 1).padStart(2, "0"); hudName.textContent = OBJECTS[cur].name;
+      }
+      hudScale.textContent = sc.value.toFixed(2);
+      draw();
+      return true;   // the tunnel drifts while it's on screen
+    }
+
+    const stage = $("#stage");
+    stage.addEventListener("pointermove", e => {
+      if (e.pointerType === "touch") return;
+      const r = stage.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, b = base();
+      vx.to(b.x + (x - b.x) * .18); vy.to(b.y + (y - b.y) * .18);
+      tilt.to(clamp((x - b.x) / W, -.5, .5) * .12);
+      const d = Math.hypot(x - vx.value, y - vy.value) / (Math.hypot(W, H) * .5);
+      sc.to(lerp(1, .38, clamp(d, 0, 1)));
     });
-  })(manifesto);
-  function updateManifesto() {
-    if (reduced) return;
-    const r = manifesto.getBoundingClientRect();
-    const start = innerHeight * .85, end = innerHeight * .35;            // paragraph top travels from 85% to 35% of the viewport
-    const p = clamp((start - r.top) / (start - end + r.height * .6), 0, 1);
-    const lit = p * (words.length + 6);
-    words.forEach((w, i) => w.style.setProperty("--o", clamp(.16 + (lit - i) / 6, .16, 1).toFixed(3)));
+    stage.addEventListener("pointerleave", () => { const b = base(); vx.to(b.x); vy.to(b.y); tilt.to(0); sc.to(.84); });
+
+    function next() {
+      swapTo = (cur + 1) % OBJECTS.length;
+      pop.to(0, { damping: 1, response: .22 });
+      animate(task);
+    }
+    $("#nextObject").addEventListener("click", next);
+
+    new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible) animate(task); }).observe(stage);
+    document.addEventListener("visibilitychange", () => { visible = !document.hidden; if (visible) animate(task); });
+    addEventListener("resize", size);
+    size();
+    return { next };
+  })();
+
+  /* ============================================================ team: roles on a hand-drawn line
+     Each role is a pill you can drag 1:1 (rubber-banded to the table); throw it and it lands where its
+     momentum carries it. A closed Catmull-Rom curve through the pills is redrawn every frame they move,
+     with a second, slightly offset pass so the line reads as drawn by hand. Arrow keys nudge a focused pill. */
+  const teamStage = $("#teamStage"), teamPath = $("#teamPath");
+  const roles = $$(".role", teamStage).map(el => ({
+    el, dx: parseFloat(el.dataset.x), dy: parseFloat(el.dataset.y), fx: 0, fy: 0,
+    x: new Spring(0, { damping: .8, response: .45, precision: .1 }), y: new Spring(0, { damping: .8, response: .45, precision: .1 }), drag: null
+  }));
+  let TW = 0, TH = 0;
+  const wob = rng(11);
+  const jitter = roles.map(() => [wob() - .5, wob() - .5]);
+  // phones: two columns of four around the title, staggered so the line still loops
+  const MOBILE = [[.27,.06],[.73,.16],[.27,.26],[.73,.36],[.27,.64],[.73,.74],[.27,.84],[.73,.94]];
+  let narrow = null;
+  function teamLayout() {
+    TW = teamStage.clientWidth; TH = teamStage.clientHeight;
+    const n = TW < 640;
+    if (n !== narrow) {   // breakpoint crossed: reset to that layout's home positions
+      narrow = n;
+      roles.forEach((r, i) => {
+        if (n) { const m = MOBILE[[0, 1, 3, 5, 7, 6, 4, 2][i]]; r.fx = m[0]; r.fy = m[1]; } else { r.fx = r.dx; r.fy = r.dy; }
+      });
+    }
+    teamStage.querySelector("svg").setAttribute("viewBox", `0 0 ${TW} ${TH}`);
+    roles.forEach(r => { const mx = mX(r), my = mY(r); r.x.jump(clamp(r.fx * TW, mx, TW - mx)); r.y.jump(clamp(r.fy * TH, my, TH - my)); });
+    drawTeam();
   }
+  function curve(pts, off) {
+    const n = pts.length; let d = "";
+    for (let i = 0; i < n; i++) {
+      const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 5 + jitter[i][0] * off, p1[1] + (p2[1] - p0[1]) / 5 + jitter[i][1] * off];
+      const c2 = [p2[0] - (p3[0] - p1[0]) / 5 - jitter[i][1] * off, p2[1] - (p3[1] - p1[1]) / 5 + jitter[i][0] * off];
+      if (!i) d += `M${p1[0].toFixed(1)} ${p1[1].toFixed(1)}`;
+      d += `C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+    }
+    return d;
+  }
+  function drawTeam() {
+    const pts = roles.map(r => {
+      r.el.style.transform = `translate3d(${(r.x.value - r.el.offsetWidth / 2).toFixed(1)}px, ${(r.y.value - r.el.offsetHeight / 2).toFixed(1)}px, 0)`;
+      return [r.x.value, r.y.value];
+    });
+    teamPath.setAttribute("d", curve(pts, 40) + " " + curve(pts, -55));   // two passes: a hand-drawn double line
+  }
+  function teamTask(dt) {
+    roles.forEach(r => { if (!r.drag) { r.x.step(dt); r.y.step(dt); } });
+    drawTeam();
+    return roles.some(r => r.drag || !r.x.resting || !r.y.resting);
+  }
+  const mX = r => r.el.offsetWidth / 2 + 6, mY = r => r.el.offsetHeight / 2 + 6;   // keep the whole pill on the table
+  const bound = (v, lo, hi, dim) => v < lo ? lo - rubberband(lo - v, dim) : v > hi ? hi + rubberband(v - hi, dim) : v;
+  roles.forEach(r => {
+    const tr = velocityTracker();
+    r.el.tabIndex = 0;
+    r.el.setAttribute("aria-roledescription", "draggable role");
+    r.el.addEventListener("pointerdown", e => {
+      r.el.setPointerCapture(e.pointerId); r.el.classList.add("is-grabbed");
+      r.x.jump(r.x.value); r.y.jump(r.y.value);                  // catch it where it is
+      r.drag = { gx: e.clientX - r.x.value, gy: e.clientY - r.y.value };   // keep the grab offset
+      tr.reset(); tr.add(e.clientX, e.clientY);
+      animate(teamTask);
+    });
+    r.el.addEventListener("pointermove", e => {
+      if (!r.drag) return;
+      tr.add(e.clientX, e.clientY);
+      r.x.jump(bound(e.clientX - r.drag.gx, mX(r), TW - mX(r), TW)); r.y.jump(bound(e.clientY - r.drag.gy, mY(r), TH - mY(r), TH));
+    });
+    const up = () => {
+      if (!r.drag) return;
+      r.drag = null; r.el.classList.remove("is-grabbed");
+      const v = tr.get();
+      const tx = clamp(r.x.value + project(v.x, .99), mX(r), TW - mX(r)), ty = clamp(r.y.value + project(v.y, .99), mY(r), TH - mY(r));
+      r.x.to(tx, { velocity: v.x, damping: .8, response: .45 }); r.y.to(ty, { velocity: v.y, damping: .8, response: .45 });
+      r.fx = tx / TW; r.fy = ty / TH;
+      animate(teamTask);
+    };
+    r.el.addEventListener("pointerup", up);
+    r.el.addEventListener("pointercancel", up);
+    r.el.addEventListener("keydown", e => {
+      const k = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }[e.key];
+      if (!k) return;
+      e.preventDefault();
+      const tx = clamp(r.x.target + k[0], mX(r), TW - mX(r)), ty = clamp(r.y.target + k[1], mY(r), TH - mY(r));
+      r.x.to(tx, { damping: 1 }); r.y.to(ty, { damping: 1 }); r.fx = tx / TW; r.fy = ty / TH;
+      animate(teamTask);
+    });
+  });
+  addEventListener("resize", teamLayout);
+  teamLayout();
 
   /* ============================================================ section reveals
      In view once (15%), rise 28px over .8s, siblings staggered by .1s. */
@@ -965,7 +1119,7 @@
   const navLinks = $$("a", nav);
   const navPill = $("#navPill");
   const sections = navLinks.map(a => $(a.getAttribute("href")));
-  const darkZones = [$(".ticker"), $(".studio"), $(".archive"), $("#foot")];
+  const darkZones = [$("#stage"), $(".archive"), $(".contact"), $("#foot")];
   const pillX = new Spring(0, { damping: 1, response: .35, precision: .1 });
   const pillW = new Spring(0, { damping: 1, response: .35, precision: .1 });
   let active = -1, navLock = -1, navLockTimer;
@@ -1004,7 +1158,6 @@
   /* ============================================================ scroll */
   let ticking = false;
   function onScroll() {
-    updateManifesto();
     if (navLock === -1) {
       let a = -1;
       sections.forEach((s, i) => { if (s && s.getBoundingClientRect().top < innerHeight * .4) a = i; });
@@ -1013,15 +1166,10 @@
     const y = bar.getBoundingClientRect().bottom - 20;
     const dark = darkZones.some(z => { const r = z.getBoundingClientRect(); return r.top <= y && r.bottom >= y; });
     bar.dataset.tone = dark ? "dark" : "light";
-    const now = performance.now(), dt = Math.max(16, now - lastScrollT) / 1000;
-    tickVel.to(clamp((scrollY - lastScrollY) / dt, -3000, 3000));
-    lastScrollY = scrollY; lastScrollT = now;
-    clearTimeout(onScroll.settle);
-    onScroll.settle = setTimeout(() => tickVel.to(0), 90);
     ticking = false;
   }
   addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
   addEventListener("resize", () => { setActive(active, true); onScroll(); });
-  document.fonts && document.fonts.ready.then(() => { setActive(active, true); layoutWheel(); });
+  document.fonts && document.fonts.ready.then(() => { setActive(active, true); layoutWheel(); teamLayout(); });
   onScroll();
 })();

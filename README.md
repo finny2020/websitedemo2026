@@ -22,24 +22,23 @@ carousel), Daniele Buffa's "Design is Funny" (huge grotesk, playful type), and P
 
 ## Structure
 
-Rebuilt with the MotionSites web-builder workflow (brief → closest references → spec → build →
-screenshot review). One signature, everything else quiet:
+Direction: object-led and editorial (references: Poch, BORN, Detroit, OUS Worldwide and an object-tunnel video),
+calm enough for corporate clients. Built with the MotionSites web-builder workflow (brief, references, spec,
+build, screenshot review).
 
-1. **Hero:** a sheet of paper inset in a black page. Giant "Wet ınk" with Blot as the dot, a short
-   lede and one CTA. The ink on the sheet is live: an orange trail follows the pointer, pressing drops
-   black ink, Blot can be thrown.
-2. **Ticker:** drifts, and picks up the speed and direction of your scroll.
-3. **[01] Studio:** a manifesto read at scroll pace (each word's opacity follows the scroll, 1:1),
-   then four facts.
-4. **[02] Archive:** the 3D wheel (1:1 drag, flick projection, snap) and the detail sheet that grows out
-   of the piece you open (drag down to dismiss). Client work first, then two concept studies.
-5. **[03] Services:** four editorial rows on paper; black ink floods each row from where you enter.
-6. **[04] Contact:** tap the address to copy it; Instagram link. Footer letters lean toward the pointer.
+1. **Hero, the object tunnel:** one of the studio's real products repeated on the walls of a tunnel that drifts
+   toward you. Move the pointer to steer it and change the scale (shown live), press "Next object" to swap the
+   product. Giant "wet ınk" with Blot as the dot, a one-line statement and "Start a project".
+2. **[01] Studio:** a mixed-type lockup ("WET INK® IS A CREATIVE STUDIO"), a stack of services in alternating
+   type, and two plain paragraphs for people who sign the brief.
+3. **[02] Archive:** the 3D wheel and the detail sheet (client work first, then two concepts).
+4. **[03] Team:** eight role pills on a hand-drawn line around "MANY HANDS, ONE MARK." Drag or throw a pill and the
+   line follows; arrow keys move a focused pill.
+5. **[04] Services:** condensed editorial rows; black ink floods a row from where you enter.
+6. **[05] Contact:** "LET'S MAKE SOMETHING PEOPLE keep." with tap-to-copy email and Instagram.
 
-Motion follows Apple's fluid-interface rules: a small spring engine in `js/main.js` (damping ratio +
-response), velocity handoff on release, momentum projection, rubber-banding, feedback on press.
-Entrances finish within about 1.5 s and the page is fully visible without JavaScript.
-`prefers-reduced-motion`, `prefers-reduced-transparency` and `prefers-contrast` are all handled.
+The orange ink trail (WebGL) follows the pointer across the page, and pressing in the hero drops ink. Springs drive
+everything you can grab (`js/main.js`). Reduced motion, reduced transparency and more contrast are handled.
 
 ## Placeholder content
 

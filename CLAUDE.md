@@ -17,10 +17,18 @@
 - No intro screens, custom cursors or input lockouts. Respect reduced motion, reduced transparency and more contrast.
 - Chrome is a floating glass capsule (`backdrop-filter`), darker material over ink-black sections.
 
-## Page structure (rebuilt with the MotionSites workflow)
-- Hero = inset paper sheet in a black page; one signature (live WebGL ink + Blot), everything else quiet.
-- Then: ticker → [01] Studio manifesto (scroll-read) → [02] Archive wheel → [03] Services rows → [04] Contact → footer.
-- Bracketed micro-labels `[ 0N ]` number the sections. The old process/disc chapter and drying timer are gone.
+## Page structure (v3: contemporary creative-arts direction, still corporate-safe)
+- References the user gave: Poch (objects as characters), BORN (split hero, serif statement), Detroit (huge condensed
+  caps, roles on a hand-drawn line), OUS Worldwide (mixed-type lockup, centred service stack), and a video of one
+  object repeated into a depth tunnel controlled by the hand.
+- Hero = black stage with the **object tunnel** (signature): a real product (cut-outs in assets/archive/cut-*.webp,
+  socks) tiled into a receding tunnel; pointer steers the vanishing point and sets the scale (HUD "Scale 0.84"),
+  "Next object" swaps it. Giant lowercase "wet ınk" with Blot as the dot, serif statement, "Start a project" CTA.
+- Then: [01] Studio (WET INK® / IS A CREATIVE STUDIO lockup + service stack + plain paragraph for corporate readers)
+  → [02] Archive wheel → [03] Team (draggable role pills on a hand-drawn line around "MANY HANDS, ONE MARK.")
+  → [04] Services rows → [05] Contact → footer.
+- Type: Archivo wide 900 (wordmarks), Archivo condensed 800 wdth 62 uppercase (section titles), Instrument Serif
+  (statements, accent words). Sections overlap with 2rem rounded tops, alternating paper and black.
 
 ## Content
 - Instagram: @wetink.studio — https://www.instagram.com/wetink.studio/
