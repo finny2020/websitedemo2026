@@ -20,30 +20,25 @@ carousel), Daniele Buffa's "Design is Funny" (huge grotesk, playful type), and P
 - **Mascot:** "Blot", the orange ink drop that is the dot of the ı in "ink". It is also the logo
   and the falling drop in the process chapter.
 
-## Interactions
+## Structure
 
-Motion follows Apple's fluid-interface principles (WWDC "Designing Fluid Interfaces"): a small
-spring engine in `js/main.js` (damping ratio + response), velocity handoff on release,
-momentum projection for flicks, rubber-banding, and feedback on pointer-down.
+Rebuilt with the MotionSites web-builder workflow (brief → closest references → spec → build →
+screenshot review). One signature, everything else quiet:
 
-1. Header: a floating glass capsule; the active-section pill slides on a spring and the glass
-   turns dark over the black chapters.
-2. Ink: a WebGL layer over the whole page. An orange trail follows the pointer everywhere; pressing
-   in the hero drops black ink (splashes inherit the stroke's velocity). Edges are thresholded at
-   full device resolution and lit with a small specular highlight so the ink looks wet.
-   Blot can be grabbed, dragged on a rubber-band leash and thrown; a hard throw splashes where
-   the momentum would land, then Blot springs home carrying your release velocity.
-3. Ticker: drifts slowly and picks up the speed and direction of your scroll.
-4. Process: scroll-linked; discs open and a red drop falls through five passes. Lines enter
-   from below going forward and from above going back.
-5. Archive: 1:1 drag, flick projection, snap to a piece, tap a side piece to bring it forward,
-   arrow keys, buttons and trackpad side-swipes. Tap the front piece (or Open) and a sheet grows
-   out of it; drag the sheet's handle down to dismiss. Client work comes first (Escu & Co.,
-   Quiet Luxury / Loud Feet socks you can set swinging, pencil boxes, Jus d'Art, a die-cut
-   postcard), followed by two concept studies (Atlas type tester, Halo booking).
-6. Services: ink floods in from where the pointer enters and drains out where it leaves.
-7. Contact: tap the address to copy it. Footer letters lean toward the pointer.
+1. **Hero:** a sheet of paper inset in a black page. Giant "Wet ınk" with Blot as the dot, a short
+   lede and one CTA. The ink on the sheet is live: an orange trail follows the pointer, pressing drops
+   black ink, Blot can be thrown.
+2. **Ticker:** drifts, and picks up the speed and direction of your scroll.
+3. **[01] Studio:** a manifesto read at scroll pace (each word's opacity follows the scroll, 1:1),
+   then four facts.
+4. **[02] Archive:** the 3D wheel (1:1 drag, flick projection, snap) and the detail sheet that grows out
+   of the piece you open (drag down to dismiss). Client work first, then two concept studies.
+5. **[03] Services:** four editorial rows on paper; black ink floods each row from where you enter.
+6. **[04] Contact:** tap the address to copy it; Instagram link. Footer letters lean toward the pointer.
 
+Motion follows Apple's fluid-interface rules: a small spring engine in `js/main.js` (damping ratio +
+response), velocity handoff on release, momentum projection, rubber-banding, feedback on press.
+Entrances finish within about 1.5 s and the page is fully visible without JavaScript.
 `prefers-reduced-motion`, `prefers-reduced-transparency` and `prefers-contrast` are all handled.
 
 ## Placeholder content

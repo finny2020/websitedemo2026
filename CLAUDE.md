@@ -17,6 +17,11 @@
 - No intro screens, custom cursors or input lockouts. Respect reduced motion, reduced transparency and more contrast.
 - Chrome is a floating glass capsule (`backdrop-filter`), darker material over ink-black sections.
 
+## Page structure (rebuilt with the MotionSites workflow)
+- Hero = inset paper sheet in a black page; one signature (live WebGL ink + Blot), everything else quiet.
+- Then: ticker → [01] Studio manifesto (scroll-read) → [02] Archive wheel → [03] Services rows → [04] Contact → footer.
+- Bracketed micro-labels `[ 0N ]` number the sections. The old process/disc chapter and drying timer are gone.
+
 ## Content
 - Instagram: @wetink.studio — https://www.instagram.com/wetink.studio/
 - Email shown: hello@wetink.studio (placeholder until confirmed).

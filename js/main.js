@@ -127,14 +127,6 @@
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 
-  /* ========================================================= drying timer */
-  const dryEl = $("#dryTimer");
-  const t0 = Date.now();
-  setInterval(() => {
-    const s = Math.floor((Date.now() - t0) / 1000);
-    dryEl.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-  }, 1000);
-
   /* ============================================================ ink layer
      WebGL metaballs over the whole page, in two inks (black, Riso orange).
      Pass 1 adds soft gaussian sprites into a half-resolution field (R = black, G = orange).
@@ -322,7 +314,7 @@
   }
 
   /* ============================================================ hero + trail */
-  const hero = $(".hero");
+  const hero = $("#paper");   // the inset paper sheet: presses here drop ink
   const sheetOpen = () => !$("#sheet").hidden;
   const stroke = velocityTracker();
   let lastTrail = null, touchStart = null;
@@ -365,7 +357,7 @@
   setTimeout(() => {
     const r = hero.getBoundingClientRect();
     dropInk(r.left + scrollX + r.width * .8, r.top + scrollY + r.height * .3, clamp(r.width / 1200, .55, 1.2), 0, 0, BLACK, .4);
-  }, reduced ? 100 : 700);
+  }, reduced ? 100 : 900);
 
   /* ================================================================ Blot
      Grab it where you grabbed it, drag it 1:1 on a rubber-band leash, throw it.
@@ -393,7 +385,7 @@
   }
   renderMascot();
   // Entrance: it falls into place as the dot of the ı. A fall carries momentum, so it may bounce.
-  if (!reduced) setTimeout(() => { my.to(0, { velocity: 900 }); msy.to(1, { velocity: -3 }); animate(mascotTask); }, 250);
+  if (!reduced) setTimeout(() => { my.to(0, { velocity: 900 }); msy.to(1, { velocity: -3 }); animate(mascotTask); }, 450);
 
   addEventListener("pointermove", e => {
     if (mascotState.dragging || reduced) return;
@@ -482,39 +474,44 @@
   }
   new IntersectionObserver(([en]) => { tickVisible = en.isIntersecting; if (tickVisible) animate(tickerTask); }).observe(ticker);
 
-  /* ============================================================ story (scroll-linked, 1:1) */
-  const story = $(".story");
-  const stack = $("#stack");
-  const drop3d = $("#drop3d");
-  const steps = $$("#steps li");
-  const lines = $$(".story__line");
-  const storyBar = $("#storyBar");
-  const discs = Array.from({ length: 5 }, () => {
-    const d = document.createElement("div"); d.className = "disc"; stack.insertBefore(d, drop3d); return d;
-  });
-  let lineIndex = 0;
-  function updateStory() {
-    const r = story.getBoundingClientRect();
-    const p = clamp(-r.top / (r.height - innerHeight), 0, 1);
-    const h = stack.clientHeight;
-    const gap = lerp(10, Math.min(h / 6.2, 110), 1 - Math.pow(1 - clamp(p * 2.2, 0, 1), 3));
-    const spin = p * 220, discY = [];
-    discs.forEach((d, i) => {
-      const y = (i - 2) * gap; discY.push(y);
-      d.style.transform = `translate3d(0, ${y}px, 0) rotateX(72deg) rotateZ(${spin + i * 18}deg)`;
+  /* ============================================================ studio manifesto
+     Read at scroll pace: each word's opacity follows how far the paragraph has travelled
+     (1:1 with scroll, no smoothing), from 16% to full. Accent phrases are already full strength. */
+  const manifesto = $(".manifesto");
+  const words = [];
+  (function split(node) {
+    [...node.childNodes].forEach(n => {
+      if (n.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        n.textContent.split(/(\s+)/).forEach(part => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+          const w = document.createElement("span"); w.className = "w"; w.textContent = part; words.push(w); frag.appendChild(w);
+        });
+        n.replaceWith(frag);
+      } else if (n.nodeType === 1 && n.tagName !== "EM") split(n);
     });
-    const dy = lerp(-2 * gap - h * .32, 2 * gap + 30, clamp((p - .12) / .8, 0, 1));
-    drop3d.style.transform = `translate3d(0, ${dy}px, 60px)`;
-    discs.forEach((d, i) => d.classList.toggle("is-lit", dy > discY[i] - 4));
-    steps.forEach((s, i) => s.classList.toggle("is-on", dy > discY[i] - 4 || (i === 0 && p > .02)));
-    // earlier lines wait above, later ones below: scrolling back reverses the path
-    const li = Math.min(lines.length - 1, Math.floor(p * lines.length * 1.02));
-    if (li !== lineIndex) {
-      lineIndex = li;
-      lines.forEach((l, i) => { l.style.setProperty("--from", i < li ? "-30%" : "30%"); l.classList.toggle("is-on", i === li); });
-    }
-    storyBar.style.transform = `scaleX(${p})`;
+  })(manifesto);
+  function updateManifesto() {
+    if (reduced) return;
+    const r = manifesto.getBoundingClientRect();
+    const start = innerHeight * .85, end = innerHeight * .35;            // paragraph top travels from 85% to 35% of the viewport
+    const p = clamp((start - r.top) / (start - end + r.height * .6), 0, 1);
+    const lit = p * (words.length + 6);
+    words.forEach((w, i) => w.style.setProperty("--o", clamp(.16 + (lit - i) / 6, .16, 1).toFixed(3)));
   }
+
+  /* ============================================================ section reveals
+     In view once (15%), rise 28px over .8s, siblings staggered by .1s. */
+  const revealIO = new IntersectionObserver(entries => entries.forEach(en => {
+    if (!en.isIntersecting) return;
+    en.target.classList.add("is-in"); revealIO.unobserve(en.target);
+  }), { threshold: .15 });
+  $$(".reveal").forEach(el => {
+    const sibs = [...el.parentElement.children].filter(c => c.classList.contains("reveal"));
+    el.style.setProperty("--i", Math.min(sibs.indexOf(el), 4));
+    revealIO.observe(el);
+  });
 
   /* ============================================================ mock websites
      Each is a small, working site. Sizes are in container units (cqw), so the same markup
@@ -906,8 +903,8 @@
   })();
 
   /* ============================================================ services
-     Ink floods in from the point you enter and drains out the way you leave. */
-  $$(".cell").forEach(c => {
+     Ink floods each row from the point you enter and drains out the way you leave. */
+  $$(".row").forEach(c => {
     const at = e => {
       const r = c.getBoundingClientRect();
       c.style.setProperty("--x", `${e.clientX - r.left}px`);
@@ -968,7 +965,7 @@
   const navLinks = $$("a", nav);
   const navPill = $("#navPill");
   const sections = navLinks.map(a => $(a.getAttribute("href")));
-  const darkZones = [$(".story"), $(".archive"), $(".ticker"), $("#foot")];
+  const darkZones = [$(".ticker"), $(".studio"), $(".archive"), $("#foot")];
   const pillX = new Spring(0, { damping: 1, response: .35, precision: .1 });
   const pillW = new Spring(0, { damping: 1, response: .35, precision: .1 });
   let active = -1, navLock = -1, navLockTimer;
@@ -984,7 +981,7 @@
     active = i;
     navLinks.forEach((a, j) => { a.classList.toggle("is-active", j === i); a.toggleAttribute("aria-current", j === i); });
     const l = navLinks[i];
-    if (!l) return;
+    if (!l) { pillW.to(0); animate(pillTask); return; }
     if (instant || pillW.value < 1) { pillX.jump(l.offsetLeft); pillW.jump(l.offsetWidth); }
     else { pillX.to(l.offsetLeft); pillW.to(l.offsetWidth); }
     animate(pillTask);
@@ -1007,11 +1004,11 @@
   /* ============================================================ scroll */
   let ticking = false;
   function onScroll() {
-    updateStory();
+    updateManifesto();
     if (navLock === -1) {
       let a = -1;
       sections.forEach((s, i) => { if (s && s.getBoundingClientRect().top < innerHeight * .4) a = i; });
-      setActive(Math.max(0, a));
+      setActive(a);
     }
     const y = bar.getBoundingClientRect().bottom - 20;
     const dark = darkZones.some(z => { const r = z.getBoundingClientRect(); return r.top <= y && r.bottom >= y; });
